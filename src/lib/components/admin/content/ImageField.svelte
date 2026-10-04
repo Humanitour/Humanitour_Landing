@@ -166,7 +166,9 @@
 				ondragover={onDragOver}
 				ondragleave={() => (dragging = false)}
 				ondrop={onDrop}
-				class="rounded-field relative h-24 w-24 {dragging ? 'outline-coral outline-2 outline-offset-2' : ''}"
+				class="rounded-field relative h-24 w-24 {dragging
+					? 'outline-coral outline-2 outline-offset-2'
+					: ''}"
 			>
 				{#if src}
 					<img
@@ -232,8 +234,8 @@
 				<p class="text-danger text-sm" role="alert">{uploadError}</p>
 			{:else if !disabled}
 				<p class="text-muted -mt-1 text-xs">
-					« Importer » envoie une photo de votre ordinateur : JPEG, PNG, WebP, GIF ou AVIF, 8 Mo
-					au maximum.
+					« Importer » envoie une photo de votre ordinateur : JPEG, PNG, WebP, GIF ou AVIF, 8 Mo au
+					maximum.
 				</p>
 			{/if}
 
@@ -259,8 +261,7 @@
 					rows="2"
 					bind:value={alt}
 					{disabled}
-					class="border-ink/20 bg-paper rounded-field min-h-11 border px-3 py-2"
-				></textarea>
+					class="border-ink/20 bg-paper rounded-field min-h-11 border px-3 py-2"></textarea>
 			</label>
 		</div>
 	</div>
