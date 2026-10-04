@@ -69,6 +69,8 @@ export interface PlanningEntry {
 	readonly time: string | null;
 	/** La fiche d'origine dans le back-office, `null` si l'entree se modifie dans le planning. */
 	readonly href: string | null;
+	/** Le membre concerne : responsable d'une tache, titulaire d'une presence. */
+	readonly ownerId: string | null;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -117,7 +119,8 @@ export function eventEntry(row: EventRow): PlanningEntry {
 		// Une fin saisie avant le debut ne doit pas faire disparaitre l'evenement.
 		end: end < start ? start : end,
 		time: row.allDay ? null : parisTime(row.startsAt),
-		href: null
+		href: null,
+		ownerId: null
 	};
 }
 
@@ -143,6 +146,7 @@ export interface TaskRow {
 	readonly note: string | null;
 	readonly status: TaskStatus;
 	readonly dueOn: Date | null;
+	readonly assigneeId: string | null;
 	readonly assigneeName: string | null;
 }
 
@@ -170,7 +174,8 @@ export function taskEntry(row: TaskRow, today: string): PlanningEntry | null {
 		start: day,
 		end: day,
 		time: null,
-		href: null
+		href: null,
+		ownerId: row.assigneeId
 	};
 }
 
@@ -215,7 +220,8 @@ export function availabilityEntry(row: AvailabilityRow): PlanningEntry {
 		start,
 		end: end < start ? start : end,
 		time: null,
-		href: null
+		href: null,
+		ownerId: row.userId
 	};
 }
 
@@ -253,7 +259,8 @@ export function mediaEntry(row: MediaRow): PlanningEntry | null {
 		start: day,
 		end: day,
 		time: row.status === 'SCHEDULED' ? parisTime(row.publishedAt) : null,
-		href: `/admin/medias/${row.id}`
+		href: `/admin/medias/${row.id}`,
+		ownerId: null
 	};
 }
 
@@ -280,7 +287,8 @@ export function campaignEntry(row: CampaignRow): PlanningEntry | null {
 		start: day,
 		end: day,
 		time: parisTime(row.sentAt),
-		href: `/admin/infolettre/campagnes/${row.id}`
+		href: `/admin/infolettre/campagnes/${row.id}`,
+		ownerId: null
 	};
 }
 
@@ -327,7 +335,8 @@ export function surveyEntries(row: SurveyRow): PlanningEntry[] {
 				start: day,
 				end: day,
 				time: null,
-				href: `/admin/sondages/${row.id}`
+				href: `/admin/sondages/${row.id}`,
+				ownerId: null
 			}
 		];
 	});
@@ -392,4 +401,27 @@ export function parseLayers(param: string | null): PlanningLayer[] {
 
 	const layers = param.split(',').filter(isLayer);
 	return layers.length === 0 ? [...LAYER_KEYS] : LAYER_KEYS.filter((key) => layers.includes(key));
+}
+
+/**
+ * L'adresse d'un planning : son mois et ses calques.
+ *
+ * Tous les calques, ou aucun, ne s'ecrivent pas : les deux valent « tout »
+ * (`parseLayers`), et une adresse qui dirait « aucun » montrerait le
+ * contraire de ce qu'elle annonce.
+ */
+export function planningQuery(month: string, layers: readonly PlanningLayer[]): string {
+	const params = new URLSearchParams({ mois: month });
+	if (layers.length > 0 && layers.length < LAYER_KEYS.length) {
+		params.set('calques', LAYER_KEYS.filter((key) => layers.includes(key)).join(','));
+	}
+	return `?${params}`;
+}
+
+/** Les calques apres un clic sur l'un d'eux : on l'allume ou on l'eteint. */
+export function toggleLayer(
+	layers: readonly PlanningLayer[],
+	layer: PlanningLayer
+): PlanningLayer[] {
+	return layers.includes(layer) ? layers.filter((key) => key !== layer) : [...layers, layer];
 }

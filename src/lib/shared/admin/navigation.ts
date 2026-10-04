@@ -88,6 +88,12 @@ export const ADMIN_NAVIGATION: readonly AdminSection[] = [
 		label: "L'association",
 		links: [
 			{
+				href: '/admin/planning',
+				label: 'Planning',
+				description: 'Calendrier éditorial, enquêtes, tâches, présences et absences.',
+				permission: 'planning.read'
+			},
+			{
 				href: '/admin/equipe',
 				label: 'Équipe',
 				description: 'Les comptes, leurs rôles et les invitations.',

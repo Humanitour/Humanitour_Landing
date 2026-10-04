@@ -88,6 +88,32 @@ export function dayToDate(day: string): Date | null {
 	return isDay(day) ? new Date(`${day}T00:00:00Z`) : null;
 }
 
+const PARIS_CLOCK = new Intl.DateTimeFormat('en-GB', {
+	timeZone: PLANNING_TIME_ZONE,
+	hour: '2-digit',
+	minute: '2-digit',
+	hourCycle: 'h23'
+});
+
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function isTime(value: string): boolean {
+	return TIME_PATTERN.test(value);
+}
+
+/**
+ * L'instant d'une heure de Paris, ce jour-la.
+ *
+ * Le decalage de Paris change deux fois par an : on ne l'ecrit donc pas, on le
+ * mesure. On lit l'heure murale de Paris a l'instant UTC naif, l'ecart donne
+ * le decalage de ce jour, et on le retranche.
+ */
+export function parisInstant(day: string, time: string): Date {
+	const naive = new Date(`${day}T${time}:00Z`);
+	const wall = new Date(`${parisDay(naive)}T${PARIS_CLOCK.format(naive)}:00Z`);
+	return new Date(naive.getTime() - (wall.getTime() - naive.getTime()));
+}
+
 /** Decale un jour de `count` jours, en avant ou en arriere. */
 export function addDays(day: string, count: number): string {
 	const date = new Date(`${day}T00:00:00Z`);

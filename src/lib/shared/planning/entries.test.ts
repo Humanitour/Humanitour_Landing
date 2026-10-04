@@ -13,6 +13,8 @@ import {
 	mediaEntry,
 	onLayers,
 	parseLayers,
+	planningQuery,
+	toggleLayer,
 	surveyEntries,
 	taskEntry,
 	type PlanningEntry
@@ -72,6 +74,7 @@ describe('taches', () => {
 		note: null,
 		status: 'TODO' as const,
 		dueOn: new Date('2026-10-03T00:00:00Z'),
+		assigneeId: 'u1',
 		assigneeName: 'Côme'
 	};
 
@@ -89,10 +92,14 @@ describe('taches', () => {
 		expect(entry?.title).toBe('Monter le reportage (Côme)');
 		expect(entry?.badge).toBe('En retard');
 		expect(entry?.alert).toBe(true);
+		expect(entry?.ownerId).toBe('u1');
 	});
 
 	it('donne l etat d une tache a l heure', () => {
-		const entry = taskEntry({ ...task, status: 'DOING', assigneeName: null, dueOn: new Date('2026-10-09T00:00:00Z') }, TODAY);
+		const entry = taskEntry(
+			{ ...task, status: 'DOING', assigneeName: null, dueOn: new Date('2026-10-09T00:00:00Z') },
+			TODAY
+		);
 
 		expect(entry?.title).toBe('Monter le reportage');
 		expect(entry?.badge).toBe('En cours');
@@ -122,6 +129,7 @@ describe('availabilityEntry', () => {
 		expect([entry.start, entry.end]).toEqual(['2026-10-05', '2026-10-09']);
 		expect(entry.badge).toBe('Absent');
 		expect(entry.alert).toBe(true);
+		expect(entry.ownerId).toBe('u1');
 	});
 
 	it('ne met pas en avant une presence, et redresse une periode a l envers', () => {
@@ -212,12 +220,16 @@ describe('rangement', () => {
 			end: TODAY,
 			time: null,
 			href: null,
+			ownerId: null,
 			...partial
 		};
 	}
 
 	it('repartit les entrees sur chaque jour couvert', () => {
-		const byDay = entriesByDay([entry({ id: 'a', end: '2026-10-06' })], [TODAY, '2026-10-06', '2026-10-07']);
+		const byDay = entriesByDay(
+			[entry({ id: 'a', end: '2026-10-06' })],
+			[TODAY, '2026-10-06', '2026-10-07']
+		);
 
 		expect(byDay[TODAY]).toHaveLength(1);
 		expect(byDay['2026-10-06']).toHaveLength(1);
@@ -276,5 +288,23 @@ describe('gardes de saisie', () => {
 		expect(isTaskStatus('LATE')).toBe(false);
 		expect(isAvailabilityKind('ABSENT')).toBe(true);
 		expect(isAvailabilityKind('MALADE')).toBe(false);
+	});
+});
+
+describe('adresse du planning', () => {
+	it('n ecrit pas les calques quand tous ou aucun sont demandes', () => {
+		expect(planningQuery('2026-10', LAYER_KEYS)).toBe('?mois=2026-10');
+		expect(planningQuery('2026-10', [])).toBe('?mois=2026-10');
+	});
+
+	it('ecrit les calques dans l ordre du registre', () => {
+		expect(planningQuery('2026-10', ['task', 'survey'])).toBe(
+			'?mois=2026-10&calques=survey%2Ctask'
+		);
+	});
+
+	it('allume et eteint un calque', () => {
+		expect(toggleLayer(['survey', 'task'], 'task')).toEqual(['survey']);
+		expect(toggleLayer(['survey'], 'media')).toEqual(['survey', 'media']);
 	});
 });
