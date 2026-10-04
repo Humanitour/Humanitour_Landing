@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { OpenformsField } from '$lib/shared/openforms/types';
-import { planQuestionsFromForm } from './schema-import';
+import {
+	IGNORED_REASON,
+	planQuestionsFromForm,
+	withIgnoredKey,
+	withoutIgnoredKeys
+} from './schema-import';
 
 function field(partial: Partial<OpenformsField> & { key: string; type: string }): OpenformsField {
 	return { label: partial.key, required: false, options: [], ...partial };
@@ -261,5 +266,51 @@ describe('planQuestionsFromForm, reconciliation des modalites', () => {
 
 		expect(plan.additions).toEqual([]);
 		expect(plan.skipped).toEqual([]);
+	});
+});
+
+describe('planQuestionsFromForm, champs ecartes au back-office', () => {
+	it('ne recree pas un champ ecarte, et le nomme parmi les ecarts', () => {
+		const plan = planQuestionsFromForm(
+			[
+				radio('champ_a1', 'Région', [{ value: 'bzh', label: 'Bretagne' }]),
+				radio('champ_a2', 'Heure de passage', [{ value: 'matin', label: 'Matin' }])
+			],
+			[],
+			['champ_a2']
+		);
+
+		expect(plan.drafts.map((draft) => draft.openformsKey)).toEqual(['champ_a1']);
+		expect(plan.skipped).toEqual([
+			{ key: 'champ_a2', label: 'Heure de passage', reason: IGNORED_REASON }
+		]);
+	});
+
+	it('laisse une question reliee a la main l emporter sur l ecart', () => {
+		const plan = planQuestionsFromForm(
+			[
+				radio('champ_a1', 'Région', [
+					{ value: 'bzh', label: 'Bretagne' },
+					{ value: 'idf', label: 'IDF' }
+				])
+			],
+			[{ code: 'region', openformsKey: 'champ_a1', optionCodes: ['bzh'] }],
+			['champ_a1']
+		);
+
+		expect(plan.skipped).toEqual([]);
+		expect(plan.additions[0]?.options.map((option) => option.code)).toEqual(['idf']);
+	});
+});
+
+describe('liste des champs ecartes', () => {
+	it('ajoute une cle une seule fois, a la suite', () => {
+		expect(withIgnoredKey(['a'], 'b')).toEqual(['a', 'b']);
+		expect(withIgnoredKey(['a', 'b'], 'a')).toEqual(['a', 'b']);
+	});
+
+	it('retire les cles retablies et garde l ordre des autres', () => {
+		expect(withoutIgnoredKeys(['a', 'b', 'c'], ['b', 'z'])).toEqual(['a', 'c']);
+		expect(withoutIgnoredKeys([], new Set(['a']))).toEqual([]);
 	});
 });

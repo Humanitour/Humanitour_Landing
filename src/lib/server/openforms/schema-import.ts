@@ -4,6 +4,25 @@ import type { OpenformsField } from '$lib/shared/openforms/types';
 import { toColumnKey } from '$lib/shared/slug';
 import { detectIdentifyingColumns } from '../normalize/identifying';
 
+/** Motif rendu pour un champ ecarte a la main. */
+export const IGNORED_REASON = 'écarté au back-office';
+
+/**
+ * Ajoute une cle a la liste des champs ecartes, sans doublon.
+ *
+ * Une liste et non un ensemble parce que c'est ce que stocke la colonne ;
+ * l'ordre d'ecart est garde, c'est celui dans lequel l'ecran les nomme.
+ */
+export function withIgnoredKey(ignored: readonly string[], key: string): string[] {
+	return ignored.includes(key) ? [...ignored] : [...ignored, key];
+}
+
+/** Retire des cles de la liste des champs ecartes : retablies, ou reliees a la main. */
+export function withoutIgnoredKeys(ignored: readonly string[], keys: Iterable<string>): string[] {
+	const removed = new Set(keys);
+	return ignored.filter((key) => !removed.has(key));
+}
+
 /**
  * Creation des questions a partir du formulaire distant.
  *
@@ -15,7 +34,7 @@ import { detectIdentifyingColumns } from '../normalize/identifying';
  * champs ecartes avec leur motif. Il n'ecrit rien, ne lit ni la base ni le
  * reseau, et se teste donc sans l'un ni l'autre.
  *
- * Trois regles le gouvernent.
+ * Quatre regles le gouvernent.
  *
  * 1. Il ne comble que les trous. Un champ deja relie a une question n'est pas
  *    retouche : relancer l'import deux fois de suite ne cree rien la seconde
@@ -23,7 +42,10 @@ import { detectIdentifyingColumns } from '../normalize/identifying';
  * 2. Il ecarte plutot que d'approximer. Un type sans equivalent croisable
  *    (grille, date) n'engendre pas une question bancale : il est ecarte, et le
  *    motif est rendu pour que l'operateur le lise.
- * 3. Il ecarte tout ce qui ressemble a une donnee identifiante, par son TYPE
+ * 3. Il ne recree pas un champ ecarte au back-office. Supprimer une question
+ *    inutile ne servirait a rien si la reprise suivante la ramenait : le champ
+ *    est nomme parmi les ecarts, et se retablit depuis l'ecran de liaison.
+ * 4. Il ecarte tout ce qui ressemble a une donnee identifiante, par son TYPE
  *    comme par son LIBELLE. Le controle par libelle n'est pas un doublon du
  *    controle de `normalize/identifying` : celui-la ne voit que les cles, et le
  *    builder d'Openforms engendre des cles opaques (« champ_mrkpxig1_2 »).
@@ -174,10 +196,25 @@ function questionCode(label: string, taken: Set<string>): string {
 	return code;
 }
 
+/** Les modalites du champ que la question deja reliee ne connait pas encore. */
+function missingOptions(question: ExistingQuestion, field: OpenformsField): OptionAddition | null {
+	const known = new Set(question.optionCodes ?? []);
+	const missing = planOptions(field).filter((option) => !known.has(option.code));
+	if (missing.length === 0) return null;
+
+	return {
+		questionCode: question.code,
+		questionLabel: question.label ?? question.code,
+		options: missing
+	};
+}
+
 export function planQuestionsFromForm(
 	fields: readonly OpenformsField[],
-	existing: readonly ExistingQuestion[]
+	existing: readonly ExistingQuestion[],
+	ignoredKeys: readonly string[] = []
 ): ImportPlan {
+	const ignored = new Set(ignoredKeys);
 	const codes = new Set(existing.map((question) => question.code));
 	const byRemoteKey = new Map(
 		existing.flatMap((question) =>
@@ -198,16 +235,15 @@ export function planQuestionsFromForm(
 		// ajouter, sans quoi la routine passerait pour un incident.
 		const already = byRemoteKey.get(field.key);
 		if (already) {
-			const known = new Set(already.optionCodes ?? []);
-			const missing = planOptions(field).filter((option) => !known.has(option.code));
+			const addition = missingOptions(already, field);
+			if (addition) additions.push(addition);
+			continue;
+		}
 
-			if (missing.length > 0) {
-				additions.push({
-					questionCode: already.code,
-					questionLabel: already.label ?? already.code,
-					options: missing
-				});
-			}
+		// Apres le controle « deja relie » : une question reliee a la main a ce
+		// champ l'emporte sur l'ecart, et ses modalites restent reconciliees.
+		if (ignored.has(field.key)) {
+			report(IGNORED_REASON);
 			continue;
 		}
 

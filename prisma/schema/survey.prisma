@@ -81,6 +81,12 @@ model Survey {
   /// Fin de la derniere synchronisation reussie. `null` = jamais synchronise.
   openformsSyncedAt DateTime?
 
+  /// Cles des champs distants ecartes au back-office : la reprise du
+  /// questionnaire ne les recree pas, et la proposition de correspondance ne
+  /// les suggere plus. Un champ ecarte reste nomme a l'ecran de liaison, et se
+  /// retablit d'un bouton : on retire du perimetre, on ne cache pas.
+  openformsIgnoredKeys String[] @default([])
+
   // Etat de collecte, recopie d'Openforms a chaque synchronisation. Il est
   // MIROIR et non source : c'est Openforms qui accepte ou refuse une reponse.
   // Ces colonnes ne servent qu'a afficher « en cours » ou « clos » sans

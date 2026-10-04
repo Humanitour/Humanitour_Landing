@@ -409,6 +409,67 @@
 		</Panel>
 	</div>
 
+	<!--
+		Le perimetre de la reprise. Un champ du formulaire qui ne sert pas a
+		l'enquete (heure de passage, consigne a l'enqueteur) s'ecarte ici avant
+		d'etre repris, ou par la suppression de sa question apres coup. Les deux
+		listes restent visibles : un ecart se lit, il ne disparait pas.
+	-->
+	{#if can(data.user, 'survey.write') && (data.unclaimed.length > 0 || data.ignored.length > 0)}
+		<div class="mt-6">
+			<Panel
+				title="Champs à reprendre ou à écarter"
+				description="Un champ écarté n'est plus recréé par la reprise du questionnaire, ni proposé à la correspondance."
+			>
+				{#if data.unclaimed.length > 0}
+					<h3 class="text-sm font-semibold">Sans question ici</h3>
+					<ul class="mt-2 flex flex-col gap-2">
+						{#each data.unclaimed as field (field.key)}
+							<li class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+								<span class="min-w-0 text-sm">
+									{field.label}
+									<span class="text-muted block text-xs">{field.type} · {field.key}</span>
+								</span>
+								<form method="POST" action="?/ignoreField" use:enhance>
+									<input type="hidden" name="key" value={field.key} />
+									<button
+										type="submit"
+										class="border-ink/25 press bg-paper rounded-pill inline-flex min-h-11 items-center border px-3 py-1 text-xs font-medium"
+									>
+										Écarter
+									</button>
+								</form>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+
+				{#if data.ignored.length > 0}
+					<h3 class="text-sm font-semibold {data.unclaimed.length > 0 ? 'mt-5' : ''}">Écartés</h3>
+					<ul class="mt-2 flex flex-col gap-2">
+						{#each data.ignored as field (field.key)}
+							<li class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+								<span class="text-muted min-w-0 text-sm">
+									{field.label}
+									{#if field.label !== field.key}<span class="block text-xs">{field.key}</span>{/if}
+								</span>
+								<form method="POST" action="?/restoreField" use:enhance>
+									<input type="hidden" name="key" value={field.key} />
+									<button
+										type="submit"
+										class="border-ink/25 press bg-paper rounded-pill inline-flex min-h-11 items-center border px-3 py-1 text-xs font-medium"
+									>
+										Rétablir
+									</button>
+								</form>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</Panel>
+		</div>
+	{/if}
+
 	<!-- ÉTAPE 4 : synchroniser -->
 	<div class="mt-6 flex flex-wrap gap-3">
 		<form

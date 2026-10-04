@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Dialog from '$components/admin/Dialog.svelte';
 	import Flash from '$components/admin/Flash.svelte';
 	import PageHeader from '$components/admin/PageHeader.svelte';
 	import Panel from '$components/admin/Panel.svelte';
@@ -16,6 +17,15 @@
 	function dateValue(value: Date | null): string {
 		return value ? new Date(value).toISOString().slice(0, 10) : '';
 	}
+
+	/**
+	 * Question dont la suppression attend confirmation. Seules celles qui
+	 * portent des reponses passent par la fenetre : les autres n'emportent rien.
+	 */
+	let pendingDelete = $state<{ id: string; code: string; label: string; answers: number } | null>(
+		null
+	);
+	let deleteConfirm = $state('');
 
 	const typeLabel = $derived(
 		(key: string) => data.questionTypes.find((type) => type.key === key)?.label ?? key
@@ -76,6 +86,7 @@
 										{#if question.optionCount > 0}
 											<span class="ml-2">{question.optionCount} modalites</span>
 										{/if}
+										<span class="ml-2">{formatCount(question.answerCount)} réponse(s)</span>
 										{#if !question.isCrossable}
 											<span class="text-warning ml-2">non croisable</span>
 										{/if}
@@ -114,15 +125,33 @@
 												↓
 											</button>
 										</form>
-										<form method="POST" action="?/deleteQuestion" use:enhance>
-											<input type="hidden" name="questionId" value={question.id} />
+										{#if question.answerCount > 0}
 											<button
-												type="submit"
+												type="button"
+												onclick={() => {
+													deleteConfirm = '';
+													pendingDelete = {
+														id: question.id,
+														code: question.code,
+														label: question.label,
+														answers: question.answerCount
+													};
+												}}
 												class="border-ink/25 text-danger bg-paper rounded-pill border px-2.5 py-1 text-xs min-h-11 inline-flex items-center justify-center"
 											>
 												Supprimer
 											</button>
-										</form>
+										{:else}
+											<form method="POST" action="?/deleteQuestion" use:enhance>
+												<input type="hidden" name="questionId" value={question.id} />
+												<button
+													type="submit"
+													class="border-ink/25 text-danger bg-paper rounded-pill border px-2.5 py-1 text-xs min-h-11 inline-flex items-center justify-center"
+												>
+													Supprimer
+												</button>
+											</form>
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -411,3 +440,59 @@
 		</Panel>
 	</aside>
 </div>
+
+<Dialog
+	open={pendingDelete !== null}
+	title="Supprimer une question et ses réponses"
+	onClose={() => (pendingDelete = null)}
+>
+	{#if pendingDelete}
+		<form
+			method="POST"
+			action="?/deleteQuestion"
+			use:enhance={() => {
+				return async ({ update }) => {
+					pendingDelete = null;
+					await update();
+				};
+			}}
+			class="flex flex-col gap-4"
+		>
+			<input type="hidden" name="questionId" value={pendingDelete.id} />
+			<p>
+				« {pendingDelete.label} » porte {formatCount(pendingDelete.answers)} réponse(s). Elles seront
+				effacées de ce site ; Openforms les garde. Si la question vient du formulaire, son champ sera
+				écarté et ne reviendra pas à la prochaine reprise.
+			</p>
+
+			<label class="flex flex-col gap-1.5">
+				<span class="font-semibold">Recopiez le code de la question pour confirmer</span>
+				<code class="bg-cream w-fit rounded px-1.5 py-0.5 text-xs">{pendingDelete.code}</code>
+				<input
+					name="confirm"
+					bind:value={deleteConfirm}
+					autocomplete="off"
+					spellcheck="false"
+					class="border-ink/20 bg-paper rounded-field min-h-11 border px-3 py-2"
+				/>
+			</label>
+
+			<div class="border-ink/12 flex justify-end gap-2 border-t pt-4">
+				<button
+					type="button"
+					onclick={() => (pendingDelete = null)}
+					class="border-ink/25 press bg-paper rounded-pill inline-flex min-h-11 items-center border px-4 py-2 text-sm font-medium"
+				>
+					Annuler
+				</button>
+				<button
+					type="submit"
+					disabled={deleteConfirm.trim() !== pendingDelete.code}
+					class="bg-ink text-paper press rounded-pill inline-flex min-h-11 items-center px-4 py-2 text-sm font-semibold disabled:opacity-40"
+				>
+					Supprimer la question
+				</button>
+			</div>
+		</form>
+	{/if}
+</Dialog>

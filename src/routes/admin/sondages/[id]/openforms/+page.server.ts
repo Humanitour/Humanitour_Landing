@@ -12,7 +12,12 @@ import {
 import { isConfigured, OpenformsError } from '$lib/server/openforms/client';
 import { resetSurveyResponses, syncSurvey } from '$lib/server/openforms/sync';
 import { suggestMapping, type MappableField } from '$lib/server/normalize/mapper';
-import { planQuestionsFromForm, type ImportPlan } from '$lib/server/openforms/schema-import';
+import {
+	planQuestionsFromForm,
+	withIgnoredKey,
+	withoutIgnoredKeys,
+	type ImportPlan
+} from '$lib/server/openforms/schema-import';
 import { requirePermission } from '$lib/server/rbac/guard';
 import { inspectForm, type UsabilityReport } from '$lib/shared/openforms/usability';
 import { getFieldType } from '$lib/shared/openforms/fields';
@@ -153,6 +158,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			opensAt: true,
 			closesAt: true,
 			maxResponses: true,
+			openformsIgnoredKeys: true,
 			_count: { select: { responses: true } }
 		}
 	});
@@ -178,8 +184,23 @@ export const load: PageServerLoad = async ({ params }) => {
 			: Promise.resolve([])
 	]);
 
+	// Le libelle vient du formulaire en direct ; sans lui, la cle opaque est
+	// tout ce qu'on peut nommer, mais on la nomme quand meme.
+	const liveLabels = new Map((live?.fields ?? []).map((field) => [field.key, field.label]));
+	const linkedKeys = new Set(questions.flatMap((question) => question.openformsKey ?? []));
+	const ignored = new Set(survey.openformsIgnoredKeys);
+
 	return {
 		configured,
+		ignored: survey.openformsIgnoredKeys.map((key) => ({
+			key,
+			label: liveLabels.get(key) ?? key
+		})),
+		// Champs que la synchronisation saurait lire, mais qu'aucune question ne
+		// recoit et que personne n'a encore ecartes : a reprendre, ou a ecarter.
+		unclaimed: (live?.fields ?? []).filter(
+			(field) => !linkedKeys.has(field.key) && !ignored.has(field.key)
+		),
 		survey: {
 			id: survey.id,
 			title: survey.title,
@@ -243,8 +264,12 @@ function describeSkipped(plan: ImportPlan): string[] {
  * Cette fonction ne fait que l'ecrire.
  */
 async function importQuestions(surveyId: string, formId: string): Promise<ImportPlan> {
-	const [form, existing] = await Promise.all([
+	const [form, survey, existing] = await Promise.all([
 		fetchForm(formId),
+		prisma.survey.findUniqueOrThrow({
+			where: { id: surveyId },
+			select: { openformsIgnoredKeys: true }
+		}),
 		prisma.question.findMany({
 			where: { surveyId },
 			orderBy: { position: 'asc' },
@@ -266,7 +291,8 @@ async function importQuestions(surveyId: string, formId: string): Promise<Import
 			label: question.label,
 			openformsKey: question.openformsKey,
 			optionCodes: question.options.map((option) => option.code)
-		}))
+		})),
+		survey.openformsIgnoredKeys
 	);
 
 	// Les modalites apparues depuis la derniere reprise, posees a la suite des
@@ -348,8 +374,12 @@ async function importQuestions(surveyId: string, formId: string): Promise<Import
  * @returns le nombre de correspondances ajoutees.
  */
 async function proposeMapping(surveyId: string, formId: string): Promise<number> {
-	const [form, questions] = await Promise.all([
+	const [form, survey, questions] = await Promise.all([
 		fetchForm(formId),
+		prisma.survey.findUniqueOrThrow({
+			where: { id: surveyId },
+			select: { openformsIgnoredKeys: true }
+		}),
 		prisma.question.findMany({
 			where: { surveyId },
 			orderBy: { position: 'asc' },
@@ -357,7 +387,12 @@ async function proposeMapping(surveyId: string, formId: string): Promise<number>
 		})
 	]);
 
-	const taken = new Set(questions.flatMap((question) => question.openformsKey ?? []));
+	// Un champ ecarte n'est plus propose : le suggerer a une question restee
+	// sans champ le ferait rentrer par la porte de cote.
+	const taken = new Set([
+		...questions.flatMap((question) => question.openformsKey ?? []),
+		...survey.openformsIgnoredKeys
+	]);
 
 	const proposal = Object.entries(
 		suggestMapping(
@@ -564,7 +599,13 @@ export const actions: Actions = {
 		// Chaque champ du formulaire s'appelle « map:<code de question> ».
 		const mapping = readPrefixed(form, 'map:');
 
-		const questionCount = await prisma.question.count({ where: { surveyId: params.id } });
+		const [questionCount, survey] = await Promise.all([
+			prisma.question.count({ where: { surveyId: params.id } }),
+			prisma.survey.findUniqueOrThrow({
+				where: { id: params.id },
+				select: { openformsIgnoredKeys: true }
+			})
+		]);
 
 		// Une cle distante ne peut alimenter qu'une question : deux questions
 		// branchees sur le meme champ compteraient deux fois la meme reponse.
@@ -604,7 +645,13 @@ export const actions: Actions = {
 						where: { surveyId_code: { surveyId: params.id, code } },
 						data: { openformsKey: key }
 					})
-				)
+				),
+			// Relier un champ ecarte a une question, c'est le retablir : le geste
+			// le plus recent l'emporte, et l'ecart ne survit pas en silence.
+			prisma.survey.update({
+				where: { id: params.id },
+				data: { openformsIgnoredKeys: withoutIgnoredKeys(survey.openformsIgnoredKeys, used.keys()) }
+			})
 		]);
 
 		await recordAudit({
@@ -639,6 +686,80 @@ export const actions: Actions = {
 				rejected: outcome.rejected,
 				newsletterSignups: outcome.newsletterSignups
 			}
+		};
+	},
+
+	/**
+	 * Ecarte un champ distant sans question : la reprise ne le creera plus.
+	 *
+	 * Rien n'est efface, il n'y a rien a effacer : le champ n'alimente aucune
+	 * question. Pour retirer une question deja creee, c'est sa suppression,
+	 * sur la fiche du sondage, qui ecarte son champ.
+	 */
+	ignoreField: async ({ request, params, locals }) => {
+		const user = requirePermission(locals.user, 'survey.write');
+		const key = readText(await request.formData(), 'key');
+		if (!key) return fail(400, { message: 'Champ manquant.' });
+
+		const survey = await prisma.survey.findUnique({
+			where: { id: params.id },
+			select: { openformsIgnoredKeys: true }
+		});
+		if (!survey) return fail(404, { message: 'Sondage introuvable.' });
+
+		const linked = await prisma.question.findFirst({
+			where: { surveyId: params.id, openformsKey: key },
+			select: { label: true }
+		});
+		if (linked) {
+			return fail(400, {
+				message: `Ce champ alimente « ${linked.label} ». Supprimez la question depuis la fiche du sondage pour l'écarter.`
+			});
+		}
+
+		await prisma.survey.update({
+			where: { id: params.id },
+			data: { openformsIgnoredKeys: withIgnoredKey(survey.openformsIgnoredKeys, key) }
+		});
+
+		await recordAudit({
+			actorId: user.id,
+			action: 'openforms.ignore',
+			entity: 'Survey',
+			entityId: params.id,
+			metadata: { key }
+		});
+
+		return { message: 'Champ écarté. La reprise du questionnaire ne le créera plus.' };
+	},
+
+	/** Retablit un champ ecarte : la prochaine reprise le recree. */
+	restoreField: async ({ request, params, locals }) => {
+		const user = requirePermission(locals.user, 'survey.write');
+		const key = readText(await request.formData(), 'key');
+
+		const survey = await prisma.survey.findUnique({
+			where: { id: params.id },
+			select: { openformsIgnoredKeys: true }
+		});
+		if (!survey) return fail(404, { message: 'Sondage introuvable.' });
+
+		await prisma.survey.update({
+			where: { id: params.id },
+			data: { openformsIgnoredKeys: withoutIgnoredKeys(survey.openformsIgnoredKeys, [key]) }
+		});
+
+		await recordAudit({
+			actorId: user.id,
+			action: 'openforms.restore',
+			entity: 'Survey',
+			entityId: params.id,
+			metadata: { key }
+		});
+
+		return {
+			message:
+				'Champ rétabli. « Reprendre les champs manquants » recréera sa question ; les réponses déjà reprises ne la rempliront qu’après une réinitialisation.'
 		};
 	},
 

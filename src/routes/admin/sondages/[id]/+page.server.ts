@@ -8,7 +8,9 @@ import {
 	readOptionalText,
 	readText
 } from '$lib/server/forms';
+import { withIgnoredKey } from '$lib/server/openforms/schema-import';
 import { requirePermission } from '$lib/server/rbac/guard';
+import { readVariables } from '$lib/server/survey/weighting-plan';
 import { QUESTION_TYPES, requireQuestionType } from '$lib/shared/questions';
 import { toColumnKey } from '$lib/shared/slug';
 import type { Actions, PageServerLoad } from './$types';
@@ -21,7 +23,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		include: {
 			questions: {
 				orderBy: { position: 'asc' },
-				include: { _count: { select: { options: true } } }
+				include: { _count: { select: { options: true, answers: true } } }
 			},
 			_count: { select: { responses: true } }
 		}
@@ -56,7 +58,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			type: question.type,
 			position: question.position,
 			isCrossable: question.isCrossable,
-			optionCount: question._count.options
+			optionCount: question._count.options,
+			answerCount: question._count.answers,
+			fromOpenforms: question.openformsKey !== null
 		})),
 		questionTypes: QUESTION_TYPES.map((type) => ({
 			key: type.key,
@@ -172,29 +176,74 @@ export const actions: Actions = {
 
 		const question = await prisma.question.findFirst({
 			where: { id: questionId, surveyId: params.id },
-			include: { _count: { select: { answers: true } } }
+			include: {
+				_count: { select: { answers: true } },
+				survey: {
+					select: { openformsIgnoredKeys: true, weighting: { select: { variables: true } } }
+				}
+			}
 		});
 
 		if (!question) return fail(404, { message: 'Question introuvable.' });
 
-		// Supprimer une question emporte ses reponses : on l'annonce plutot que de
-		// le decouvrir apres coup.
-		if (question._count.answers > 0) {
+		// Une variable de calage ne se retire pas en passant : le redressement
+		// suivant echouerait sans dire pourquoi.
+		const calibrates = readVariables(question.survey.weighting?.variables).some(
+			(variable) => variable.questionCode === question.code
+		);
+		if (calibrates) {
 			return fail(400, {
-				message: `« ${question.label} » porte ${question._count.answers} reponses. Supprimez d'abord le lot d'import correspondant.`
+				message: `« ${question.label} » sert de variable de redressement. Retirez-la des marges avant de la supprimer.`
 			});
 		}
 
-		await prisma.question.delete({ where: { id: questionId } });
+		const cards = await prisma.surveyCard.findMany({
+			where: { surveyId: params.id, OR: [{ xCode: question.code }, { yCode: question.code }] },
+			select: { title: true }
+		});
+		if (cards.length > 0) {
+			return fail(400, {
+				message: `« ${question.label} » porte la carte ${cards.map((card) => `« ${card.title} »`).join(', ')}. Supprimez la carte d'abord.`
+			});
+		}
+
+		// Supprimer une question emporte ses reponses. Le geste est permis, mais
+		// il se confirme en recopiant le code : l'ecran l'annonce avant, pas apres.
+		const answers = question._count.answers;
+		if (answers > 0 && readText(form, 'confirm') !== question.code) {
+			return fail(400, {
+				message: `« ${question.label} » porte ${answers} réponse(s). Recopiez son code (${question.code}) pour confirmer leur suppression.`
+			});
+		}
+
+		// Son champ est ecarte dans le meme geste : sans quoi la prochaine
+		// reprise du questionnaire la recreerait, et le menage serait a refaire.
+		const key = question.openformsKey;
+		await prisma.$transaction([
+			prisma.question.delete({ where: { id: questionId } }),
+			...(key
+				? [
+						prisma.survey.update({
+							where: { id: params.id },
+							data: {
+								openformsIgnoredKeys: withIgnoredKey(question.survey.openformsIgnoredKeys, key)
+							}
+						})
+					]
+				: [])
+		]);
+
 		await recordAudit({
 			actorId: user.id,
 			action: 'question.delete',
 			entity: 'Question',
 			entityId: questionId,
-			metadata: { surveyId: params.id, code: question.code }
+			metadata: { surveyId: params.id, code: question.code, answers, ignoredKey: key }
 		});
 
-		return { message: 'Question supprimee.' };
+		const ignored = key ? ' Son champ Openforms est écarté : la reprise ne la recréera pas.' : '';
+		const erased = answers > 0 ? ` ${answers} réponse(s) effacée(s).` : '';
+		return { message: `Question supprimée.${erased}${ignored}` };
 	},
 
 	moveQuestion: async ({ request, params, locals }) => {
