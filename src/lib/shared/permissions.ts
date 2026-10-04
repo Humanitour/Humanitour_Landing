@@ -152,6 +152,25 @@ export const PERMISSIONS = {
 		sensitive: true
 	},
 
+	/*
+	 * Planning. Le consulter suffit a declarer SES propres presences et
+	 * absences, et a faire avancer les taches qui vous sont confiees : ce sont
+	 * des gestes sur soi. Ecrire, c'est poser des rendez-vous, distribuer des
+	 * taches et tenir le planning des autres.
+	 */
+	'planning.read': {
+		group: 'Planning',
+		label: 'Consulter le planning',
+		description:
+			'Voir le calendrier de l equipe, declarer ses presences et absences, faire avancer ses taches.'
+	},
+	'planning.write': {
+		group: 'Planning',
+		label: 'Organiser le planning',
+		description:
+			'Poser des evenements, creer et attribuer des taches, saisir les presences et absences des autres membres.'
+	},
+
 	'user.read': {
 		group: 'Equipe',
 		label: 'Consulter les comptes',

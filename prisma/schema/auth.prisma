@@ -41,6 +41,11 @@ model User {
   campaignsCreated   NewsletterCampaign[] @relation("CampaignCreatedBy")
   campaignsSent      NewsletterCampaign[] @relation("CampaignSentBy")
 
+  planningEvents      PlanningEvent[]    @relation("PlanningEventCreatedBy")
+  planningTasks       PlanningTask[]     @relation("PlanningTaskAssignee")
+  planningTasksIssued PlanningTask[]     @relation("PlanningTaskCreatedBy")
+  availabilities      TeamAvailability[] @relation("TeamAvailabilityUser")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
