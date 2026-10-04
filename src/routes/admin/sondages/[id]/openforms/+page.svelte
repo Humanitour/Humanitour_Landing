@@ -49,7 +49,9 @@
 	const mapped = $derived(data.questions.filter((question) => question.openformsKey).length);
 
 	/** Identifiant d'une question par son code, pour lier un rejet a sa fiche. */
-	const questionIdByCode = $derived(new Map(data.questions.map((question) => [question.code, question.id])));
+	const questionIdByCode = $derived(
+		new Map(data.questions.map((question) => [question.code, question.id]))
+	);
 
 	const UNKNOWN_MODALITY = /^Modalité inconnue : « (.+) »\.$/;
 
@@ -219,6 +221,14 @@
 
 		<Panel title="Publié ici">
 			<p class="tabular text-3xl font-semibold">{formatCount(data.survey.mirrored)}</p>
+			{#if data.survey.mirrored > 0}
+				<a
+					href="/admin/sondages/{data.survey.id}/reponses"
+					class="text-coral-ink mt-1 inline-flex min-h-11 items-center text-sm underline"
+				>
+					Consulter les réponses
+				</a>
+			{/if}
 			{#if pending === null}
 				<p class="text-muted mt-1 text-sm">
 					Dernière synchronisation :
@@ -425,7 +435,9 @@
 					<h3 class="text-sm font-semibold">Sans question ici</h3>
 					<ul class="mt-2 flex flex-col gap-2">
 						{#each data.unclaimed as field (field.key)}
-							<li class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+							<li
+								class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2"
+							>
 								<span class="min-w-0 text-sm">
 									{field.label}
 									<span class="text-muted block text-xs">{field.type} · {field.key}</span>
@@ -448,7 +460,9 @@
 					<h3 class="text-sm font-semibold {data.unclaimed.length > 0 ? 'mt-5' : ''}">Écartés</h3>
 					<ul class="mt-2 flex flex-col gap-2">
 						{#each data.ignored as field (field.key)}
-							<li class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+							<li
+								class="border-ink/12 flex flex-wrap items-center justify-between gap-2 border-t pt-2"
+							>
 								<span class="text-muted min-w-0 text-sm">
 									{field.label}
 									{#if field.label !== field.key}<span class="block text-xs">{field.key}</span>{/if}
@@ -535,7 +549,9 @@
 		<div class="mt-6">
 			<Panel
 				title="Repartir de zéro"
-				description="Efface les {formatCount(data.survey.mirrored)} réponses reprises ici. Openforms les garde toutes : une nouvelle synchronisation les reprend avec la correspondance actuelle."
+				description="Efface les {formatCount(
+					data.survey.mirrored
+				)} réponses reprises ici. Openforms les garde toutes : une nouvelle synchronisation les reprend avec la correspondance actuelle."
 			>
 				<p class="text-muted text-sm">
 					Utile après une correspondance corrigée : une réponse déjà reprise n'est jamais réécrite,
@@ -624,7 +640,8 @@
 													{:else}
 														<form
 															method="POST"
-															action="/admin/sondages/{data.survey.id}/questions/{fix.questionId}?/addOption"
+															action="/admin/sondages/{data.survey
+																.id}/questions/{fix.questionId}?/addOption"
 															use:enhance={() => {
 																return async ({ result, update }) => {
 																	if (result.type === 'success') addedModalities.add(fix.key);
@@ -750,8 +767,8 @@
 		class="flex flex-col gap-4"
 	>
 		<p>
-			Les {formatCount(data.survey.mirrored)} réponses de cette enquête seront effacées de ce site.
-			Si l'enquête est publiée, ses résultats resteront vides jusqu'à la prochaine reprise.
+			Les {formatCount(data.survey.mirrored)} réponses de cette enquête seront effacées de ce site. Si
+			l'enquête est publiée, ses résultats resteront vides jusqu'à la prochaine reprise.
 		</p>
 
 		<label class="flex flex-col gap-1.5">
