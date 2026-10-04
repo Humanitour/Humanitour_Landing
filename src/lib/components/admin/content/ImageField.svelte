@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import type { LibraryGroup, LibraryImage } from '$lib/shared/content/library';
 
 	interface Props {
@@ -23,9 +23,10 @@
 	 * relevees. Les choisir la evite de redeposer un cliche qui existe et,
 	 * surtout, de le redecrire moins bien.
 	 *
-	 * Le televersement ensuite, pour ce qui n'existe pas encore. Il a sa propre
-	 * action, en haut de la page : un formulaire ne peut pas en contenir un
-	 * autre, et une image doit etre visible avant l'enregistrement.
+	 * Le televersement ensuite, pour ce qui n'existe pas encore : un bouton, ou
+	 * un fichier lache sur l'apercu. Il passe par `fetch`, parce qu'un
+	 * formulaire ne peut pas en contenir un autre, et l'image s'affiche avant
+	 * l'enregistrement de la section.
 	 *
 	 * L'adresse enfin, saisie a la main, pour une image hebergee ailleurs.
 	 * C'est ce champ-la qui porte la valeur : les deux autres chemins ne font
@@ -45,6 +46,13 @@
 
 	const listId = $derived(`bibliotheque-${name.replace(/\W+/g, '-')}`);
 
+	/** Le champ d'adresse : c'est par lui qu'on previent le formulaire englobant. */
+	let srcInput: HTMLInputElement | undefined = $state();
+	let fileInput: HTMLInputElement | undefined = $state();
+	let uploading = $state(false);
+	let uploadError: string | null = $state(null);
+	let dragging = $state(false);
+
 	function choose(image: LibraryImage) {
 		src = image.src;
 		width = image.width === undefined ? '' : String(image.width);
@@ -52,6 +60,75 @@
 		// La description proposee ne remplace jamais celle qui a ete ecrite : on
 		// ne recouvre pas le travail de quelqu'un en changeant de cliche.
 		if (alt.trim() === '' && image.alt !== '') alt = image.alt;
+		announce();
+	}
+
+	/**
+	 * Previent le formulaire englobant qu'une valeur a change.
+	 *
+	 * Une valeur posee par le code n'emet aucun evenement : l'editeur de page,
+	 * qui relit sa section a chaque `input`, n'aurait rien vu et l'apercu
+	 * serait reste sur l'ancienne image. On attend que Svelte ait reporte les
+	 * valeurs dans le DOM avant d'emettre, sinon le formulaire relirait
+	 * l'ancienne adresse.
+	 */
+	async function announce() {
+		await tick();
+		srcInput?.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+
+	/**
+	 * Depose une image et la pose dans le champ.
+	 *
+	 * Par `fetch` et non par un formulaire : ce champ vit deja dans celui de
+	 * sa section, et HTML n'en accepte pas un second a l'interieur.
+	 */
+	async function upload(file: File) {
+		uploading = true;
+		uploadError = null;
+
+		const body = new FormData();
+		body.set('fichier', file);
+
+		try {
+			const response = await fetch('/admin/api/televersement', { method: 'POST', body });
+			const result = (await response.json().catch(() => ({}))) as {
+				image?: LibraryImage;
+				message?: string;
+			};
+
+			if (!response.ok || !result.image) {
+				uploadError = result.message ?? 'Le téléversement a échoué. Réessayez.';
+				return;
+			}
+
+			choose(result.image);
+		} catch {
+			uploadError = 'Le serveur est injoignable. Vérifiez la connexion et réessayez.';
+		} finally {
+			uploading = false;
+			if (fileInput) fileInput.value = '';
+		}
+	}
+
+	function onFile(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).files?.[0];
+		if (file) void upload(file);
+	}
+
+	function onDrop(event: DragEvent) {
+		event.preventDefault();
+		dragging = false;
+		if (disabled || uploading) return;
+
+		const file = event.dataTransfer?.files[0];
+		if (file) void upload(file);
+	}
+
+	function onDragOver(event: DragEvent) {
+		if (disabled) return;
+		event.preventDefault();
+		dragging = true;
 	}
 
 	/**
@@ -79,25 +156,67 @@
 	{#if help}<p class="text-muted -mt-1 text-xs">{help}</p>{/if}
 
 	<div class="flex flex-wrap items-start gap-4">
-		{#if src}
-			<img
-				{src}
-				alt=""
-				class="rounded-field border-ink/12 h-24 w-24 border object-cover"
-				loading="lazy"
-			/>
-		{:else}
+		<!--
+			L'apercu sert aussi de zone de depot. Ce n'est qu'un raccourci pour la
+			souris : le bouton en dessous fait la meme chose au clavier.
+		-->
+		<div class="flex w-24 flex-col gap-2">
 			<div
-				class="border-ink/15 rounded-field text-muted flex h-24 w-24 items-center justify-center border border-dashed text-center text-xs"
+				role="presentation"
+				ondragover={onDragOver}
+				ondragleave={() => (dragging = false)}
+				ondrop={onDrop}
+				class="rounded-field relative h-24 w-24 {dragging ? 'outline-coral outline-2 outline-offset-2' : ''}"
 			>
-				Aucune image
+				{#if src}
+					<img
+						{src}
+						alt=""
+						class="rounded-field border-ink/12 h-24 w-24 border object-cover"
+						loading="lazy"
+					/>
+				{:else}
+					<div
+						class="border-ink/15 rounded-field text-muted flex h-24 w-24 items-center justify-center border border-dashed p-1 text-center text-xs"
+					>
+						{disabled ? 'Aucune image' : 'Déposez une photo ici'}
+					</div>
+				{/if}
+				{#if uploading}
+					<div
+						class="bg-paper/85 rounded-field absolute inset-0 flex items-center justify-center text-center text-xs font-semibold"
+					>
+						Envoi…
+					</div>
+				{/if}
 			</div>
-		{/if}
+
+			{#if !disabled}
+				<input
+					bind:this={fileInput}
+					type="file"
+					accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+					onchange={onFile}
+					class="sr-only"
+					tabindex="-1"
+					aria-hidden="true"
+				/>
+				<button
+					type="button"
+					onclick={() => fileInput?.click()}
+					disabled={uploading}
+					class="border-ink/25 bg-paper press rounded-pill min-h-11 border px-3 text-xs font-semibold disabled:opacity-60"
+				>
+					Importer
+				</button>
+			{/if}
+		</div>
 
 		<div class="flex min-w-56 flex-1 flex-col gap-3">
 			<label class="flex flex-col gap-1.5">
 				<span class="text-sm font-semibold">Adresse de l’image</span>
 				<input
+					bind:this={srcInput}
 					name="{name}.src"
 					type="text"
 					bind:value={src}
@@ -108,6 +227,15 @@
 					class="border-ink/20 bg-paper rounded-field min-h-11 border px-3 py-2"
 				/>
 			</label>
+
+			{#if uploadError}
+				<p class="text-danger text-sm" role="alert">{uploadError}</p>
+			{:else if !disabled}
+				<p class="text-muted -mt-1 text-xs">
+					« Importer » envoie une photo de votre ordinateur : JPEG, PNG, WebP, GIF ou AVIF, 8 Mo
+					au maximum.
+				</p>
+			{/if}
 
 			<!-- Liste native : sans JavaScript, la saisie propose quand meme les
 			     adresses connues du site. -->
