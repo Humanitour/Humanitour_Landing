@@ -6,9 +6,16 @@
  *
  *   Bande de clarte      PASS  — les 8 dans L 0.43–0.77
  *   Plancher de chroma   PASS  — les 8 >= 0.1
- *   Separation daltonien PASS  — pire paire #eda100/#1baf7a dE 9.1 (protan)
- *   Vision normale       PASS  — pire paire #e87ba4/#eda100 dE 19.6
- *   Contraste / surface  WARN  — 3 teintes sous 3:1, d ou la regle ci-dessous
+ *   Separation daltonien PASS  — pire paire #e86fa6/#0f8a6c dE 8.7 (protan)
+ *   Vision normale       PASS  — pire paire #9c2f5c/#b8860b dE 25.2
+ *   Contraste / surface  WARN  — #ff751f et #e86fa6 sous 3:1, d ou la regle ci-dessous
+ *
+ * Revue le 4 octobre 2026 : la palette precedente etait la palette de
+ * reference de la methode, a peine retouchee, et les exports ne portaient de
+ * la charte que leur premier slot. Les trois teintes de la charte (corail,
+ * orange, rose) y ont maintenant chacune leur place, intercalees avec des
+ * teintes froides et sombres qui les separent : poses cote a cote, corail,
+ * orange et rose ne se distinguent pas.
  *
  * Le WARN de contraste impose une compensation, appliquee partout : chaque
  * modalite porte son libelle et son effectif en toutes lettres, et un tableau de
@@ -23,30 +30,31 @@
  * filtres appliques. Filtrer une region ne doit pas repeindre les autres, sinon
  * deux captures du meme sondage ne se comparent plus.
  *
- * Le corail de la marque occupe le premier slot ; il remplace le rouge de la
- * palette de reference, dont il etait trop proche. Les autres adjacences sont
- * celles de la palette de reference, deja validees.
+ * Le corail de la marque occupe le premier slot. L orange et le rose de la
+ * charte viennent ensuite, chacun encadre par une teinte froide ou sombre :
+ * c est l ordre qui passe le validateur en paires adjacentes.
  */
 export const CATEGORICAL: readonly string[] = [
-	'#FF5757', // corail — couleur de marque
-	'#2a78d6', // bleu
-	'#eb6834', // orange
-	'#1baf7a', // aqua
-	'#eda100', // jaune
-	'#e87ba4', // magenta
-	'#008300', // vert
-	'#4a3aa7' // violet
+	'#FF5757', // corail — charte
+	'#1f6fb0', // bleu encre
+	'#ff751f', // orange — charte
+	'#0f8a6c', // vert d eau
+	'#e86fa6', // rose — charte, assombri pour tenir la bande de clarte
+	'#5b48a6', // violet
+	'#b8860b', // ocre
+	'#9c2f5c' // prune
 ];
 
 /**
  * Plafond pour les formes ou toutes les paires se cotoient : carte categorielle,
  * nuage de points, petits multiples.
  *
- * Le corail et l orange ne se distinguent pas l un de l autre hors adjacence
- * (dE 2.9 en deuteranopie, 6.3 en vision normale). Au-dela de trois series sur
+ * Hors adjacence, le corail ne se distingue ni de l orange ni du rose (dE 8,3
+ * et 10,7 en vision normale, sous le plancher de 15). Ce trio-ci passe toutes
+ * les paires, daltonisme compris (pire dE 13,9). Au-dela de trois series sur
  * ces formes, on regroupe en « Autre » ou on separe en plusieurs graphiques.
  */
-export const ALL_PAIRS_SAFE: readonly string[] = ['#FF5757', '#2a78d6', '#1baf7a'];
+export const ALL_PAIRS_SAFE: readonly string[] = ['#FF5757', '#1f6fb0', '#9c2f5c'];
 export const ALL_PAIRS_MAX = 3;
 
 /**

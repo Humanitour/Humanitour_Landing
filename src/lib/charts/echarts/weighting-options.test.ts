@@ -53,7 +53,7 @@ describe('impactOption', () => {
 	});
 
 	it('garde les couleurs du role, jamais du rang', () => {
-		expect(RAW_COLOR).toBe('#2a78d6');
+		expect(RAW_COLOR).toBe('#1f6fb0');
 		expect(WEIGHTED_COLOR).toBe('#FF5757');
 	});
 });
