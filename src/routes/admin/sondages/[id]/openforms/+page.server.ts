@@ -1,7 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { recordAudit } from '$lib/server/audit';
 import { prisma } from '$lib/server/db';
-import { readPrefixed, readText } from '$lib/server/forms';
+import { readCheckbox, readPrefixed, readText } from '$lib/server/forms';
 import {
 	fetchForm,
 	fetchPublicForm,
@@ -10,7 +10,7 @@ import {
 	type RemoteSummary
 } from '$lib/server/openforms/api';
 import { isConfigured, OpenformsError } from '$lib/server/openforms/client';
-import { syncSurvey } from '$lib/server/openforms/sync';
+import { resetSurveyResponses, syncSurvey } from '$lib/server/openforms/sync';
 import { suggestMapping, type MappableField } from '$lib/server/normalize/mapper';
 import { planQuestionsFromForm, type ImportPlan } from '$lib/server/openforms/schema-import';
 import { requirePermission } from '$lib/server/rbac/guard';
@@ -639,6 +639,55 @@ export const actions: Actions = {
 				rejected: outcome.rejected,
 				newsletterSignups: outcome.newsletterSignups
 			}
+		};
+	},
+
+	/**
+	 * Efface les reponses reprises, puis relance une passe si on le demande.
+	 *
+	 * Reserve a `survey.delete` : le geste retire des chiffres peut-etre deja
+	 * publies, et il se confirme en recopiant l'adresse de l'enquete. Un clic
+	 * egare ne doit pas vider un jeu de donnees cite ailleurs.
+	 */
+	reset: async ({ request, params, locals }) => {
+		const user = requirePermission(locals.user, 'survey.delete');
+		const form = await request.formData();
+
+		const survey = await prisma.survey.findUnique({
+			where: { id: params.id },
+			select: { slug: true, openformsFormId: true }
+		});
+		if (!survey) return fail(404, { message: 'Sondage introuvable.' });
+
+		if (readText(form, 'confirm') !== survey.slug) {
+			return fail(400, {
+				message: `Rien n'a été effacé. Pour confirmer, recopiez exactement l'adresse de l'enquête : ${survey.slug}.`
+			});
+		}
+
+		const deleted = await resetSurveyResponses(params.id);
+
+		await recordAudit({
+			actorId: user.id,
+			action: 'openforms.reset',
+			entity: 'Survey',
+			entityId: params.id,
+			metadata: { deleted }
+		});
+
+		const cleared = `${deleted} réponse(s) effacée(s), redressement retiré.`;
+		if (!readCheckbox(form, 'resync') || !survey.openformsFormId) {
+			return { message: `${cleared} Lancez une synchronisation pour les reprendre.` };
+		}
+
+		const outcome = await syncSurvey(params.id, 'MANUAL', user.id);
+		if (outcome.failure) {
+			return fail(400, { message: `${cleared} La reprise a échoué : ${outcome.failure}` });
+		}
+
+		const rejected = outcome.rejected > 0 ? `, ${outcome.rejected} refusée(s)` : '';
+		return {
+			message: `${cleared} Reprise : ${outcome.fetched} soumission(s) lue(s), ${outcome.created} reprise(s)${rejected}.`
 		};
 	},
 

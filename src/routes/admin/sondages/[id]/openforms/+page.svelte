@@ -10,6 +10,7 @@
 	import Table from '$components/admin/Table.svelte';
 	import TrendChart from '$components/admin/TrendChart.svelte';
 	import { formatCount, formatDate } from '$lib/shared/format';
+	import { can } from '$lib/shared/permissions';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -94,6 +95,15 @@
 
 	let syncing = $state(false);
 	let syncReport = $state<SyncReport | null>(null);
+
+	/**
+	 * Reinitialisation du miroir. La saisie de l'adresse sert de verrou : le
+	 * bouton reste inactif tant qu'elle ne correspond pas, et le serveur la
+	 * reverifie de son cote.
+	 */
+	let resetOpen = $state(false);
+	let resetting = $state(false);
+	let resetConfirm = $state('');
 
 	/** Intitules des declencheurs. Le journal dit « par quoi », pas « MANUAL ». */
 	const TRIGGERS: Record<string, string> = {
@@ -460,6 +470,31 @@
 		</form>
 	</div>
 
+	{#if can(data.user, 'survey.delete') && data.survey.mirrored > 0}
+		<div class="mt-6">
+			<Panel
+				title="Repartir de zéro"
+				description="Efface les {formatCount(data.survey.mirrored)} réponses reprises ici. Openforms les garde toutes : une nouvelle synchronisation les reprend avec la correspondance actuelle."
+			>
+				<p class="text-muted text-sm">
+					Utile après une correspondance corrigée : une réponse déjà reprise n'est jamais réécrite,
+					il faut donc l'effacer pour la relire. Le redressement est retiré avec elles, le journal
+					des synchronisations reste.
+				</p>
+				<button
+					type="button"
+					onclick={() => {
+						resetConfirm = '';
+						resetOpen = true;
+					}}
+					class="border-ink/25 text-danger press bg-paper rounded-pill mt-4 inline-flex min-h-11 items-center border px-4 py-2 text-sm font-semibold"
+				>
+					Réinitialiser les réponses
+				</button>
+			</Panel>
+		</div>
+	{/if}
+
 	<div class="mt-6">
 		<Table
 			empty={data.syncs.length === 0}
@@ -631,4 +666,66 @@
 			Fermer
 		</button>
 	{/snippet}
+</Dialog>
+
+<Dialog
+	open={resetOpen}
+	title="Réinitialiser les réponses synchronisées"
+	onClose={() => {
+		if (!resetting) resetOpen = false;
+	}}
+>
+	<form
+		method="POST"
+		action="?/reset"
+		use:enhance={() => {
+			resetting = true;
+			return async ({ update }) => {
+				resetting = false;
+				resetOpen = false;
+				await update({ reset: false });
+			};
+		}}
+		class="flex flex-col gap-4"
+	>
+		<p>
+			Les {formatCount(data.survey.mirrored)} réponses de cette enquête seront effacées de ce site.
+			Si l'enquête est publiée, ses résultats resteront vides jusqu'à la prochaine reprise.
+		</p>
+
+		<label class="flex flex-col gap-1.5">
+			<span class="font-semibold">Recopiez l'adresse de l'enquête pour confirmer</span>
+			<code class="bg-cream w-fit rounded px-1.5 py-0.5 text-xs">{data.survey.slug}</code>
+			<input
+				name="confirm"
+				bind:value={resetConfirm}
+				autocomplete="off"
+				spellcheck="false"
+				class="border-ink/20 bg-paper rounded-field min-h-11 border px-3 py-2"
+			/>
+		</label>
+
+		<label class="flex min-h-11 items-center gap-2">
+			<input type="checkbox" name="resync" checked class="size-4" />
+			<span>Resynchroniser aussitôt depuis Openforms</span>
+		</label>
+
+		<div class="border-ink/12 flex justify-end gap-2 border-t pt-4">
+			<button
+				type="button"
+				disabled={resetting}
+				onclick={() => (resetOpen = false)}
+				class="border-ink/25 press bg-paper rounded-pill inline-flex min-h-11 items-center border px-4 py-2 text-sm font-medium disabled:opacity-60"
+			>
+				Annuler
+			</button>
+			<button
+				type="submit"
+				disabled={resetting || resetConfirm.trim() !== data.survey.slug}
+				class="bg-ink text-paper press rounded-pill inline-flex min-h-11 items-center px-4 py-2 text-sm font-semibold disabled:opacity-40"
+			>
+				{resetting ? 'Réinitialisation en cours…' : 'Effacer les réponses'}
+			</button>
+		</div>
+	</form>
 </Dialog>
