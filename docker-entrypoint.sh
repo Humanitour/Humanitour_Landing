@@ -17,6 +17,14 @@ if [ -z "${DATABASE_URL}" ]; then
 	exit 1
 fi
 
+# Un stockage inaccessible ne bloque pas le site public, mais chaque envoi de
+# fichier du back-office echouerait en 500 : le dire des le demarrage, dans les
+# journaux, plutot qu'a la premiere image deposee.
+STORAGE_ROOT="${STORAGE_LOCAL_PATH:-./var/storage}"
+if ! mkdir -p "${STORAGE_ROOT}" 2>/dev/null || [ ! -w "${STORAGE_ROOT}" ]; then
+	echo "ATTENTION : le stockage ${STORAGE_ROOT} n'est pas accessible en ecriture. Les televersements echoueront. Laisser STORAGE_LOCAL_PATH vide ou la fixer a /var/storage." >&2
+fi
+
 echo "Application des migrations..."
 node node_modules/prisma/build/index.js migrate deploy
 

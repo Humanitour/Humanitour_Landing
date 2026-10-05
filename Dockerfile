@@ -62,6 +62,10 @@ RUN mkdir -p /var/storage && chown app:app /var/storage
 # que l'utilisateur `app` ne peut pas creer : l'envoi d'une piece jointe
 # echouait en EACCES.
 ENV STORAGE_LOCAL_PATH=/var/storage
+# L'hebergeur peut ecraser la variable avec la valeur de `.env.example`
+# (`./var/storage`) : le lien fait alors pointer ce chemin sur le volume, au
+# lieu d'un dossier que `app` ne peut pas creer ou qu'un redeploiement viderait.
+RUN mkdir -p /app/var && ln -s /var/storage /app/var/storage
 VOLUME ["/var/storage"]
 
 USER app
