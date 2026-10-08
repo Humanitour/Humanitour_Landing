@@ -5,6 +5,7 @@
 		formatDate,
 		formatDecimal,
 		formatFieldwork,
+		formatPoints,
 		formatShare
 	} from '$lib/shared/format';
 	import type { PageData } from './$types';
@@ -145,18 +146,24 @@
 							<thead class="text-muted text-left text-xs">
 								<tr>
 									<th scope="col" class="py-1 pr-3 font-semibold">Modalité</th>
-									<th scope="col" class="px-3 py-1 text-right font-semibold">Cible</th>
 									<th scope="col" class="px-3 py-1 text-right font-semibold">Échantillon brut</th>
-									<th scope="col" class="py-1 pl-3 text-right font-semibold">Échantillon redressé</th>
+									<th scope="col" class="px-3 py-1 text-right font-semibold">Cible</th>
+									<th scope="col" class="px-3 py-1 text-right font-semibold">Échantillon redressé</th>
+									<th scope="col" class="py-1 pl-3 text-right font-semibold">Écart à la cible</th>
 								</tr>
 							</thead>
 							<tbody>
 								{#each variable.rows as row (row.key)}
 									<tr class="border-ink/10 border-t">
 										<th scope="row" class="py-1 pr-3 text-left font-normal">{row.label}</th>
-										<td class="tabular px-3 py-1 text-right">{formatShare(row.target)}</td>
 										<td class="tabular px-3 py-1 text-right">{formatShare(row.observed)}</td>
-										<td class="tabular py-1 pl-3 text-right">{formatShare(row.weighted)}</td>
+										<td class="tabular px-3 py-1 text-right">{formatShare(row.target)}</td>
+										<td class="tabular px-3 py-1 text-right">{formatShare(row.weighted)}</td>
+										<td class="tabular py-1 pl-3 text-right">
+											{row.weighted === null || row.target === null
+												? ''
+												: formatPoints(row.weighted - row.target)}
+										</td>
 									</tr>
 								{/each}
 							</tbody>

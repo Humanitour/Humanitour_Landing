@@ -163,8 +163,8 @@
 							<tr>
 								<th scope="col" class="py-1.5 pr-3 font-semibold">Modalité</th>
 								<th scope="col" class="px-3 py-1.5 text-right font-semibold">Brut</th>
-								<th scope="col" class="px-3 py-1.5 text-right font-semibold">Redressé</th>
 								<th scope="col" class="px-3 py-1.5 text-right font-semibold">Cible</th>
+								<th scope="col" class="px-3 py-1.5 text-right font-semibold">Redressé</th>
 								<th scope="col" class="py-1.5 pl-3 text-right font-semibold">Écart</th>
 							</tr>
 						</thead>
@@ -175,8 +175,8 @@
 								<tr class="border-ink/10 border-t">
 									<th scope="row" class="py-1.5 pr-3 text-left font-normal">{row.label}</th>
 									<td class="tabular px-3 py-1.5 text-right">{formatShare(row.observed)}</td>
-									<td class="tabular px-3 py-1.5 text-right">{formatShare(row.weighted)}</td>
 									<td class="tabular px-3 py-1.5 text-right">{formatShare(row.target)}</td>
+									<td class="tabular px-3 py-1.5 text-right">{formatShare(row.weighted)}</td>
 									<td class="tabular py-1.5 pl-3 text-right {far ? 'text-danger font-semibold' : ''}">
 										{row.weighted === null || row.target === null
 											? ''
