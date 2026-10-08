@@ -1,13 +1,23 @@
 import { getQuestionType, type ModalityDescriptor } from '$lib/shared/questions';
 import { prisma } from '../db';
+import { CENSUS_DATASETS } from '../insee/census';
 import { Prisma } from '../prisma-client/client';
-import { rake, type WeightingDiagnostics, type WeightingSettings } from './weighting';
+import {
+	DESIGN_EFFECT_ALERT,
+	kish,
+	rake,
+	type WeightingDiagnostics,
+	type WeightingSettings
+} from './weighting';
+import { composeWeightingNote, type WeightingNote } from './weighting-note';
 import {
 	buildUnits,
 	canCalibrateOn,
 	checkIntegrity,
 	integrityBlocker,
+	marginReport,
 	readDiagnostics,
+	readUsedVariables,
 	readVariables,
 	toWeightingVariables,
 	type CalibrationQuestion,
@@ -177,10 +187,7 @@ export async function computeSurveyWeights(
 	const { units } = await loadCalibrationData(surveyId, used);
 	if (units.length === 0) return { ok: false, message: 'Aucune réponse à redresser.' };
 
-	const blocker = integrityBlocker(
-		checkIntegrity(units, stored, used),
-		run.missingAcknowledged
-	);
+	const blocker = integrityBlocker(checkIntegrity(units, stored, used), run.missingAcknowledged);
 	if (blocker) return { ok: false, message: blocker };
 
 	const result = rake(units, variables, run.settings);
@@ -277,4 +284,64 @@ export async function loadWeights(surveyId: string): Promise<Map<string, number>
 	});
 
 	return new Map(responses.map((response) => [response.id, response.weight ?? 1]));
+}
+
+/**
+ * La note methodologique du dernier calcul, ou `null` s il n y en a pas.
+ *
+ * Elle se compose a partir de ce qui a REELLEMENT servi : les marges et les
+ * parametres enregistres avec le calcul, les poids ecrits en base. Elle ne
+ * decrit pas ce qu on aurait voulu faire.
+ */
+export async function loadWeightingNote(surveyId: string): Promise<WeightingNote | null> {
+	const [survey, weighting, candidates] = await Promise.all([
+		prisma.survey.findUnique({
+			where: { id: surveyId },
+			select: { slug: true, title: true, fieldworkStart: true, fieldworkEnd: true }
+		}),
+		prisma.surveyWeighting.findUnique({ where: { surveyId } }),
+		calibrationQuestions(surveyId)
+	]);
+
+	const diagnostics = readDiagnostics(weighting?.diagnostics);
+	if (!survey || !weighting?.computedAt || !diagnostics) return null;
+
+	const variables = readUsedVariables(weighting.diagnostics) ?? readVariables(weighting.variables);
+	const used = candidates.filter((question) =>
+		variables.some((variable) => variable.questionCode === question.code)
+	);
+	const { units, weights } = await loadCalibrationData(surveyId, used);
+	const integrity = checkIntegrity(units, variables, used);
+	const usesPcs = variables.some((variable) => variable.origin?.dimension === 'pcs');
+
+	return composeWeightingNote({
+		survey,
+		version: weighting.version,
+		computedAt: weighting.computedAt,
+		fieldworkStart: survey.fieldworkStart,
+		fieldworkEnd: survey.fieldworkEnd,
+		source: weighting.source,
+		respondents: weights.size,
+		settings: diagnostics.settings,
+		convergence: diagnostics,
+		metrics: { ...kish([...weights.values()]), atBounds: diagnostics.atBounds },
+		alertThreshold: DESIGN_EFFECT_ALERT,
+		pcsTable: usesPcs ? CENSUS_DATASETS.pcs.table : null,
+		variables: used.map((question) => {
+			const variable = variables.find((candidate) => candidate.questionCode === question.code);
+			return {
+				code: question.code,
+				label: question.label,
+				origin: variable?.origin ?? null,
+				missing: integrity.find((report) => report.questionCode === question.code)?.missing ?? 0,
+				rows: marginReport(
+					units,
+					weights,
+					question.code,
+					question.modalities,
+					variable?.targets ?? null
+				).rows
+			};
+		})
+	});
 }
