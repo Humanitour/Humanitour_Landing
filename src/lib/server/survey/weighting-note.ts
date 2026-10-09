@@ -39,6 +39,8 @@ export type NoteBlock =
 	| { readonly kind: 'paragraph'; readonly runs: readonly NoteRun[] }
 	| {
 			readonly kind: 'margins';
+			/** Code de la variable de calage : la page y accroche son graphique. */
+			readonly code: string;
 			readonly label: string;
 			readonly provenance: string;
 			readonly rows: readonly NoteMarginRow[];
@@ -98,6 +100,11 @@ export interface WeightingNoteInput {
 		readonly atBounds: number;
 	};
 	readonly alertThreshold: number;
+	/**
+	 * Seuil d'anonymat applique aux marges, pour la note publiee. `null` pour
+	 * l'equipe, qui lit tous les effectifs.
+	 */
+	readonly anonymityThreshold: number | null;
 	readonly pcsTable: string | null;
 	readonly variables: readonly {
 		readonly code: string;
@@ -215,13 +222,40 @@ function marginRow(row: MarginRow): NoteMarginRow {
 	};
 }
 
-function missingFootnote(missing: number): string | null {
+function missingFootnote(missing: number, threshold: number | null): string | null {
 	if (missing === 0) return null;
+	if (threshold !== null && missing < threshold) {
+		return (
+			`Moins de ${threshold} répondants sans réponse à cette question, conservés avec un poids ` +
+			'inchangé sur cette variable ; les parts ci-dessus sont calculées sur les répondants classés.'
+		);
+	}
 	return (
 		`${formatCount(missing)} ${plural(missing, 'répondant')} sans réponse à cette question, ` +
 		`${plural(missing, 'conservé')} avec un poids inchangé sur cette variable ; les parts ci-dessus sont ` +
 		'calculées sur les répondants classés.'
 	);
+}
+
+/** Le tiret des parts masquees, explique la ou il apparait. */
+function maskingNote(input: WeightingNoteInput): NoteBlock[] {
+	const threshold = input.anonymityThreshold;
+	if (threshold === null) return [];
+
+	const masked = input.variables.some((variable) =>
+		variable.rows.some((row) => row.target !== null && row.observed === null)
+	);
+	if (!masked) return [];
+
+	return [
+		paragraph(
+			text(
+				`Un tiret remplace les parts qui reposent sur moins de ${threshold} répondants, et celles ` +
+					"qui permettraient de les retrouver par soustraction : c'est le seuil d'anonymat de " +
+					'toutes les publications de cette enquête.'
+			)
+		)
+	];
 }
 
 function marginsSection(input: WeightingNoteInput): NoteSection {
@@ -241,12 +275,14 @@ function marginsSection(input: WeightingNoteInput): NoteSection {
 		blocks: [
 			paragraph(text(`Source des marges : ${input.source ?? 'non renseignée.'}`)),
 			...pcs,
+			...maskingNote(input),
 			...input.variables.map((variable): NoteBlock => ({
 				kind: 'margins',
+				code: variable.code,
 				label: variable.label,
 				provenance: provenance(variable.origin),
 				rows: variable.rows.map(marginRow),
-				footnote: missingFootnote(variable.missing)
+				footnote: missingFootnote(variable.missing, input.anonymityThreshold)
 			}))
 		]
 	};

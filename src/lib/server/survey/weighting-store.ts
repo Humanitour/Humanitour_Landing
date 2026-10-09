@@ -292,8 +292,14 @@ export async function loadWeights(surveyId: string): Promise<Map<string, number>
  * Elle se compose a partir de ce qui a REELLEMENT servi : les marges et les
  * parametres enregistres avec le calcul, les poids ecrits en base. Elle ne
  * decrit pas ce qu on aurait voulu faire.
+ *
+ * Avec un `threshold`, c est la version publiee : les parts des marges y sont
+ * masquees sous le seuil d anonymat, comme tout chiffre qui sort du site.
  */
-export async function loadWeightingNote(surveyId: string): Promise<WeightingNote | null> {
+export async function loadWeightingNote(
+	surveyId: string,
+	options: { threshold?: number } = {}
+): Promise<WeightingNote | null> {
 	const [survey, weighting, candidates] = await Promise.all([
 		prisma.survey.findUnique({
 			where: { id: surveyId },
@@ -326,6 +332,7 @@ export async function loadWeightingNote(surveyId: string): Promise<WeightingNote
 		convergence: diagnostics,
 		metrics: { ...kish([...weights.values()]), atBounds: diagnostics.atBounds },
 		alertThreshold: DESIGN_EFFECT_ALERT,
+		anonymityThreshold: options.threshold ?? null,
 		pcsTable: usesPcs ? CENSUS_DATASETS.pcs.table : null,
 		variables: used.map((question) => {
 			const variable = variables.find((candidate) => candidate.questionCode === question.code);
@@ -339,7 +346,8 @@ export async function loadWeightingNote(surveyId: string): Promise<WeightingNote
 					weights,
 					question.code,
 					question.modalities,
-					variable?.targets ?? null
+					variable?.targets ?? null,
+					options.threshold
 				).rows
 			};
 		})

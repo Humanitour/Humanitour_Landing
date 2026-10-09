@@ -27,6 +27,7 @@ const INPUT: WeightingNoteInput = {
 		atBounds: 16
 	},
 	alertThreshold: 1.5,
+	anonymityThreshold: null,
 	pcsTable: 'RP2022 PCS',
 	variables: [
 		{
@@ -140,6 +141,55 @@ describe('composeWeightingNote', () => {
 		expect(pcs?.footnote).toBeNull();
 		expect(zone?.footnote).toMatch(/^3 répondants sans réponse à cette question, conservés/);
 		expect(sexe?.footnote).toMatch(/^1 répondant sans réponse à cette question, conservé avec/);
+	});
+
+	it('names each margin table after its calibration variable', () => {
+		expect(marginBlocks(composeWeightingNote(INPUT)).map((block) => block.code)).toEqual([
+			'pcs',
+			'zone',
+			'sexe'
+		]);
+	});
+
+	describe('published with an anonymity threshold', () => {
+		const masked: WeightingNoteInput = {
+			...INPUT,
+			anonymityThreshold: 5,
+			variables: INPUT.variables.map((variable) =>
+				variable.code === 'sexe'
+					? { ...variable, rows: [{ ...variable.rows[0]!, observed: null, weighted: null }] }
+					: variable
+			)
+		};
+
+		it('hides a count of missing answers below the threshold', () => {
+			const [, zone, sexe] = marginBlocks(composeWeightingNote(masked));
+			expect(zone?.footnote).toMatch(/^Moins de 5 répondants sans réponse à cette question/);
+			expect(sexe?.footnote).toMatch(/^Moins de 5 répondants/);
+		});
+
+		it('explains the dash that replaces a masked share', () => {
+			const [sexe] = marginBlocks(composeWeightingNote(masked)).slice(-1);
+			expect(sexe?.rows[0]).toMatchObject({ observed: '—', weighted: '—', deviation: '' });
+			expect(text(composeWeightingNote(masked))).toContain(
+				'Un tiret remplace les parts qui reposent sur moins de 5 répondants'
+			);
+		});
+
+		it('says nothing about masking when no share is masked', () => {
+			const note = composeWeightingNote({ ...INPUT, anonymityThreshold: 5 });
+			expect(text(note)).not.toContain('Un tiret remplace');
+		});
+
+		it('keeps an exact count of missing answers at or above the threshold', () => {
+			const [pcs] = marginBlocks(
+				composeWeightingNote({
+					...masked,
+					variables: [{ ...INPUT.variables[0]!, missing: 12 }]
+				})
+			);
+			expect(pcs?.footnote).toMatch(/^12 répondants sans réponse/);
+		});
 	});
 
 	it('writes the calibration formula with its subscripts', () => {

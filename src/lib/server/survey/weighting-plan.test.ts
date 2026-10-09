@@ -274,7 +274,13 @@ describe('parseSettingsForm', () => {
 	it('lit les parametres, virgule ou point', () => {
 		expect(parseSettingsForm(formWith({ ...valid, acceptMissing: 'on' }))).toEqual({
 			ok: true,
-			settings: { tolerance: 0.0001, maxIterations: 100, trim: true, minWeight: 0.25, maxWeight: 3.5 },
+			settings: {
+				tolerance: 0.0001,
+				maxIterations: 100,
+				trim: true,
+				minWeight: 0.25,
+				maxWeight: 3.5
+			},
 			missingAcknowledged: true
 		});
 	});
@@ -286,7 +292,13 @@ describe('parseSettingsForm', () => {
 
 		expect(parsed).toEqual({
 			ok: true,
-			settings: { tolerance: 0.001, maxIterations: 20, trim: false, minWeight: 0.25, maxWeight: 3.5 },
+			settings: {
+				tolerance: 0.001,
+				maxIterations: 20,
+				trim: false,
+				minWeight: 0.25,
+				maxWeight: 3.5
+			},
 			missingAcknowledged: false
 		});
 	});
@@ -308,7 +320,13 @@ describe('parseSettingsForm', () => {
 
 describe('currentSettings', () => {
 	it('reprend les parametres du dernier calcul', () => {
-		const settings = { tolerance: 0.001, maxIterations: 7, trim: false, minWeight: 0.3, maxWeight: 4 };
+		const settings = {
+			tolerance: 0.001,
+			maxIterations: 7,
+			trim: false,
+			minWeight: 0.3,
+			maxWeight: 4
+		};
 		const diagnostics = readDiagnostics({
 			iterations: 1,
 			converged: true,
@@ -367,11 +385,7 @@ describe('checkIntegrity et integrityBlocker', () => {
 	});
 
 	it('releve une modalite portee par des repondants mais sans cible', () => {
-		const reports = checkIntegrity(
-			units,
-			[{ questionCode: 'age', targets: { vieux: 1 } }],
-			[AGE]
-		);
+		const reports = checkIntegrity(units, [{ questionCode: 'age', targets: { vieux: 1 } }], [AGE]);
 
 		expect(reports[0]?.untargeted).toEqual([{ key: 'jeune', label: 'Moins de 35 ans', count: 1 }]);
 		expect(integrityBlocker(reports, true)).toMatch(/« Moins de 35 ans » \(1\)/);
@@ -536,6 +550,35 @@ describe('marginReport', () => {
 		const { rows } = marginReport(units, null, 'sexe', SEXE.modalities, null);
 
 		expect(rows.map((row) => row.key)).not.toContain(NON_RESPONSE_KEY);
+	});
+
+	describe('avec un seuil d anonymat', () => {
+		// Huit femmes, deux hommes : la part des hommes repose sur deux personnes.
+		const people = Array.from({ length: 10 }, (_, index) => `p${index}`);
+		const classed = buildUnits(
+			people,
+			people.map((id, index) => ({
+				responseId: id,
+				questionCode: 'sexe',
+				modalityKey: index < 8 ? 'f' : 'h'
+			}))
+		);
+		const weights = new Map(people.map((id) => [id, 1]));
+
+		it('masque la part sous le seuil, et celle qui la redonnerait par soustraction', () => {
+			const { rows } = marginReport(classed, weights, 'sexe', SEXE.modalities, { f: 0.5 }, 5);
+
+			expect(rows.every((row) => row.observed === null && row.weighted === null)).toBe(true);
+			// La cible vient du recensement, pas de l echantillon : elle reste publiee.
+			expect(rows.find((row) => row.key === 'f')?.target).toBe(0.5);
+		});
+
+		it('publie toutes les parts quand chaque modalite passe le seuil', () => {
+			const { rows } = marginReport(classed, weights, 'sexe', SEXE.modalities, null, 2);
+
+			expect(rows.find((row) => row.key === 'h')?.observed).toBeCloseTo(0.2);
+			expect(rows.find((row) => row.key === 'h')?.weighted).toBeCloseTo(0.2);
+		});
 	});
 });
 

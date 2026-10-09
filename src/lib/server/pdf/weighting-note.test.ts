@@ -22,6 +22,7 @@ const INPUT: WeightingNoteInput = {
 		atBounds: 4
 	},
 	alertThreshold: 1.5,
+	anonymityThreshold: null,
 	pcsTable: null,
 	variables: [
 		{

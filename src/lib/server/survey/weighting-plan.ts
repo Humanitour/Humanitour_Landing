@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getQuestionType, NON_RESPONSE_KEY, type ModalityDescriptor } from '$lib/shared/questions';
+import { protectDistribution } from './anonymity';
 import {
 	DEFAULT_MAX_ITERATIONS,
 	DEFAULT_MAX_WEIGHT,
@@ -84,10 +85,7 @@ export function readUsedVariables(diagnostics: unknown): StoredVariable[] | null
 }
 
 /** Memes variables, memes cibles a un demi-centieme de point pres. La provenance ne compte pas. */
-export function sameMargins(
-	a: readonly StoredVariable[],
-	b: readonly StoredVariable[]
-): boolean {
+export function sameMargins(a: readonly StoredVariable[], b: readonly StoredVariable[]): boolean {
 	if (a.length !== b.length) return false;
 
 	return a.every((variable) => {
@@ -438,7 +436,8 @@ export function parseSettingsForm(form: FormData): ParsedSettings {
 	if (trim && (minWeight === null || maxWeight === null)) {
 		return {
 			ok: false,
-			message: 'Bornes des poids : la borne basse doit être entre 0,01 et 1, la borne haute entre 1 et 50.'
+			message:
+				'Bornes des poids : la borne basse doit être entre 0,01 et 1, la borne haute entre 1 et 50.'
 		};
 	}
 
@@ -620,7 +619,8 @@ export function marginReport(
 	weights: ReadonlyMap<string, number> | null,
 	questionCode: string,
 	modalities: readonly ModalityDescriptor[],
-	targets: Readonly<Record<string, number>> | null
+	targets: Readonly<Record<string, number>> | null,
+	threshold?: number
 ): { rows: MarginRow[]; unknown: number } {
 	const raw = new Map<string, number>();
 	const weighted = new Map<string, number>();
@@ -641,14 +641,45 @@ export function marginReport(
 		weightedTotal += weight;
 	}
 
-	const rows = targetModalities(modalities).map((modality) => ({
-		key: modality.key,
-		label: modality.label,
-		observed: rawTotal > 0 ? (raw.get(modality.key) ?? 0) / rawTotal : null,
-		target: targets?.[modality.key] ?? null,
-		weighted:
-			weights && weightedTotal > 0 ? (weighted.get(modality.key) ?? 0) / weightedTotal : null
-	}));
+	const kept = targetModalities(modalities);
+	const hidden = maskedKeys(raw, kept, threshold);
+
+	const rows = kept.map((modality) => {
+		const visible = !hidden.has(modality.key);
+		return {
+			key: modality.key,
+			label: modality.label,
+			observed: visible && rawTotal > 0 ? (raw.get(modality.key) ?? 0) / rawTotal : null,
+			target: targets?.[modality.key] ?? null,
+			weighted:
+				visible && weights && weightedTotal > 0
+					? (weighted.get(modality.key) ?? 0) / weightedTotal
+					: null
+		};
+	});
 
 	return { rows, unknown };
+}
+
+/**
+ * Les modalites dont la part ne peut pas etre publiee.
+ *
+ * Une part posee a cote d un effectif publie redonne un compte : sous le seuil,
+ * elle se masque comme le compte, dans les deux lectures, et la suppression
+ * secondaire de `protectDistribution` empeche de la retrouver par
+ * soustraction. Sans seuil, c est l ecran de l analyste, et rien n est masque.
+ */
+function maskedKeys(
+	raw: ReadonlyMap<string, number>,
+	modalities: readonly ModalityDescriptor[],
+	threshold: number | undefined
+): Set<string> {
+	if (threshold === undefined) return new Set();
+
+	const table = protectDistribution(
+		raw,
+		modalities.map((modality) => modality.key),
+		threshold
+	);
+	return new Set(table.cells.filter((cell) => cell.suppressed).map((cell) => cell.xKey));
 }
