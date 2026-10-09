@@ -9,7 +9,11 @@ import {
 	type WeightingDiagnostics,
 	type WeightingSettings
 } from './weighting';
-import { composeWeightingNote, type WeightingNote } from './weighting-note';
+import {
+	composeWeightingNote,
+	type WeightingNote,
+	type WeightingNoteInput
+} from './weighting-note';
 import {
 	buildUnits,
 	canCalibrateOn,
@@ -300,6 +304,21 @@ export async function loadWeightingNote(
 	surveyId: string,
 	options: { threshold?: number } = {}
 ): Promise<WeightingNote | null> {
+	const input = await loadWeightingNoteInput(surveyId, options);
+	return input ? composeWeightingNote(input) : null;
+}
+
+/**
+ * Ce dont la note est faite, chiffres compris.
+ *
+ * Expose pour la page publique du redressement, qui dessine les marges avec
+ * les MEMES lignes que celles de ses tableaux : un graphique recalcule a part
+ * finirait par ne plus dire ce que dit le tableau d a cote.
+ */
+export async function loadWeightingNoteInput(
+	surveyId: string,
+	options: { threshold?: number } = {}
+): Promise<WeightingNoteInput | null> {
 	const [survey, weighting, candidates] = await Promise.all([
 		prisma.survey.findUnique({
 			where: { id: surveyId },
@@ -320,7 +339,7 @@ export async function loadWeightingNote(
 	const integrity = checkIntegrity(units, variables, used);
 	const usesPcs = variables.some((variable) => variable.origin?.dimension === 'pcs');
 
-	return composeWeightingNote({
+	return {
 		survey,
 		version: weighting.version,
 		computedAt: weighting.computedAt,
@@ -351,5 +370,5 @@ export async function loadWeightingNote(
 				).rows
 			};
 		})
-	});
+	};
 }

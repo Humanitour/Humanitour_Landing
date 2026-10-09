@@ -7,6 +7,7 @@ import {
 	effectiveSize,
 	largestShifts,
 	marginOfError,
+	resolveSubgroupSelection,
 	type QuestionComparison,
 	type ReportQuestion
 } from './weighting-report';
@@ -251,5 +252,50 @@ describe('compareBySubgroup', () => {
 
 		expect(small.suppressed).toBe(true);
 		expect(small.raw).toBeNull();
+	});
+});
+
+describe('resolveSubgroupSelection', () => {
+	const comparisons = [compareQuestion(OPINION, WEIGHTS, 5)];
+	const none = { question: null, modality: null, group: null };
+
+	it('garde un choix valide', () => {
+		expect(
+			resolveSubgroupSelection(
+				{ question: 'avis', modality: 'non', group: 'age' },
+				comparisons,
+				['genre', 'age', 'avis'],
+				['genre']
+			)
+		).toEqual({ question: 'avis', modality: 'non', group: 'age' });
+	});
+
+	it('choisit par defaut la reponse la plus deplacee et la premiere variable de calage', () => {
+		expect(
+			resolveSubgroupSelection(none, comparisons, ['age', 'genre', 'avis'], ['genre'])
+		).toEqual({ question: 'avis', modality: 'oui', group: 'genre' });
+	});
+
+	it('ramene un parametre inconnu au choix par defaut', () => {
+		expect(
+			resolveSubgroupSelection(
+				{ question: 'inconnue', modality: 'peut-etre', group: 'avis' },
+				comparisons,
+				['avis', 'age'],
+				[]
+			)
+		).toEqual({ question: 'avis', modality: 'oui', group: 'age' });
+	});
+
+	it('prend la premiere reponse quand rien ne bouge', () => {
+		const flat = compareQuestion(OPINION, new Map(), 5);
+		expect(resolveSubgroupSelection(none, [flat], ['genre'], [])?.modality).toBe('oui');
+	});
+
+	it('ne propose rien sans question, sans sous-groupe ou sans reponse', () => {
+		expect(resolveSubgroupSelection(none, [], ['genre'], [])).toBeNull();
+		expect(resolveSubgroupSelection(none, comparisons, ['avis'], [])).toBeNull();
+		const empty: QuestionComparison = { ...comparisons[0]!, rows: [] };
+		expect(resolveSubgroupSelection(none, [empty], ['genre'], [])).toBeNull();
 	});
 });

@@ -61,6 +61,15 @@ export function formatPoints(delta: number | null): string {
 	return `${sign}${ONE_DECIMAL.format(Math.abs(points))} pt`;
 }
 
+/** Le signe ne se separe jamais du nombre en fin de ligne. */
+const NO_BREAK_SPACE = String.fromCharCode(0xa0);
+
+/** Marge d erreur d une part, en points : « ± 3,2 pt ». */
+export function formatMargin(margin: number | null): string {
+	if (margin === null || !Number.isFinite(margin)) return SUPPRESSED_SYMBOL;
+	return `±${NO_BREAK_SPACE}${ONE_DECIMAL.format(Math.abs(margin) * 100)} pt`;
+}
+
 const ONE_DECIMAL = new Intl.NumberFormat('fr-FR', {
 	minimumFractionDigits: 1,
 	maximumFractionDigits: 1

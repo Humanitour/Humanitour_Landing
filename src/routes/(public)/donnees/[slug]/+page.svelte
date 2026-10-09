@@ -1018,6 +1018,17 @@
 					pour la même précision : redresser coûte de la précision, et ce chiffre dit combien.
 				</p>
 
+				<!--
+					Le rapport complet : chaque chiffre redresse a cote du brut, avec sa
+					marge d erreur, et la note methodologique telechargeable.
+				-->
+				<a
+					href="/donnees/{data.survey.slug}/redressement"
+					class="bg-ink text-paper press rounded-pill mt-6 inline-flex min-h-11 items-center px-6 py-2.5 font-semibold"
+				>
+					Lire le rapport de redressement
+				</a>
+
 				<div class="mt-8 grid gap-6 sm:grid-cols-2">
 					{#each weighting.variables as variable (variable.code)}
 						<table class="w-full text-sm">

@@ -50,6 +50,15 @@ export const PARAM_READING = 'lecture';
 export const WEIGHTED_READING = 'redresse';
 
 /**
+ * Le comparatif par sous-groupe du rapport de redressement
+ * (`/donnees/[slug]/redressement`) : quelle question, quelle reponse, selon
+ * quel sous-groupe. Meme contrat que les parametres de l explorateur.
+ */
+export const PARAM_REPORT_QUESTION = 'question';
+export const PARAM_REPORT_ANSWER = 'reponse';
+export const PARAM_REPORT_GROUP = 'groupe';
+
+/**
  * Ordre d affichage des modalites.
  *
  * `effectif` classe du plus cite au moins cite, ce qui rend une liste de choix

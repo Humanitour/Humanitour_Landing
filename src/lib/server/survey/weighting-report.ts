@@ -256,3 +256,48 @@ export function compareBySubgroup(
 
 	return { modality: { key: modality.key, label: modality.label }, rows };
 }
+
+/** Le croisement montre par sous-groupe : quelle reponse, a quelle question, selon quoi. */
+export interface SubgroupSelection {
+	readonly question: string;
+	readonly modality: string;
+	readonly group: string;
+}
+
+/**
+ * Ce que l adresse demande, ramene a ce qui existe.
+ *
+ * Un parametre inconnu ne casse pas la page : il retombe sur le choix par
+ * defaut. Par defaut, la reponse est celle que le redressement deplace le plus
+ * dans la question, et le sous-groupe la premiere variable de calage : c est
+ * la que le lecteur voit pourquoi le chiffre bouge.
+ */
+export function resolveSubgroupSelection(
+	requested: {
+		readonly question: string | null;
+		readonly modality: string | null;
+		readonly group: string | null;
+	},
+	comparisons: readonly QuestionComparison[],
+	groups: readonly string[],
+	calibrated: readonly string[]
+): SubgroupSelection | null {
+	const comparison =
+		comparisons.find((candidate) => candidate.code === requested.question) ?? comparisons[0];
+	if (!comparison) return null;
+
+	const candidates = groups.filter((code) => code !== comparison.code);
+	const group =
+		candidates.find((code) => code === requested.group) ??
+		calibrated.find((code) => candidates.includes(code)) ??
+		candidates[0];
+	if (!group) return null;
+
+	const modality =
+		comparison.rows.find((row) => row.key === requested.modality) ??
+		largestShifts([comparison], 1)[0]?.row ??
+		comparison.rows[0];
+	if (!modality) return null;
+
+	return { question: comparison.code, modality: modality.key, group };
+}

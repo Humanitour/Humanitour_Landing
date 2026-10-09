@@ -5,6 +5,7 @@ import {
 	formatDate,
 	formatDecimal,
 	formatFieldwork,
+	formatMargin,
 	formatPoints,
 	formatShare,
 	formatWeek,
@@ -62,6 +63,17 @@ describe('formatDecimal', () => {
 	it('rend le symbole des valeurs absentes', () => {
 		expect(formatDecimal(null)).toBe(SUPPRESSED_SYMBOL);
 		expect(formatDecimal(Number.NaN)).toBe(SUPPRESSED_SYMBOL);
+	});
+});
+
+describe('formatMargin', () => {
+	it('donne la marge en points, a une decimale', () => {
+		expect(formatMargin(0.0318)).toBe('± 3,2 pt');
+	});
+
+	it('rend le tiret sans marge', () => {
+		expect(formatMargin(null)).toBe(SUPPRESSED_SYMBOL);
+		expect(formatMargin(Number.NaN)).toBe(SUPPRESSED_SYMBOL);
 	});
 });
 
