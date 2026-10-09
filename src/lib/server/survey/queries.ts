@@ -8,6 +8,7 @@ import { prisma } from '../db';
 import { pickThreshold } from './anonymity';
 import type { AnswerRow } from './aggregate';
 import { selectAxes, type Axis } from './explore';
+import { describeCards, type PublicCard } from './selection';
 import { loadPublishedWeighting, loadWeights, type PublicWeighting } from './weighting-store';
 import {
 	everyone,
@@ -386,4 +387,49 @@ export async function listPublishedThemes(): Promise<{ theme: string; count: num
 	return [...counts]
 		.map(([theme, count]) => ({ theme, count }))
 		.sort((a, b) => b.count - a.count || a.theme.localeCompare(b.theme, 'fr'));
+}
+
+/** La selection de l equipe d une enquete publiee : ses croisements publies, en clair. */
+export async function publishedSelection(survey: PublicSurvey): Promise<PublicCard[]> {
+	const cards = await prisma.surveyCard.findMany({
+		where: { surveyId: survey.id, isPublished: true },
+		orderBy: { position: 'asc' }
+	});
+
+	return describeCards(cards, filterableQuestions(survey));
+}
+
+/** Un croisement de la selection, avec l enquete qui le porte. */
+export interface FeaturedCrossing {
+	readonly survey: { readonly slug: string; readonly title: string };
+	readonly card: PublicCard;
+}
+
+/**
+ * Les premiers croisements de la selection, toutes enquetes publiees
+ * confondues : les plus recentes d abord, puis dans l ordre choisi par
+ * l equipe. C est ce que montre l accueil.
+ */
+export async function featuredSelection(limit: number): Promise<FeaturedCrossing[]> {
+	const cards = await prisma.surveyCard.findMany({
+		where: { isPublished: true, survey: { status: 'PUBLISHED' } },
+		orderBy: [{ survey: { publishedAt: 'desc' } }, { position: 'asc' }],
+		select: { survey: { select: { slug: true } } }
+	});
+
+	// Une enquete a la fois : ses questions servent a mettre ses cartes en clair.
+	const slugs = [...new Set(cards.map((card) => card.survey.slug))];
+	const featured: FeaturedCrossing[] = [];
+
+	for (const slug of slugs) {
+		if (featured.length >= limit) break;
+		const survey = await getPublishedSurvey(slug);
+		if (!survey) continue;
+
+		for (const card of await publishedSelection(survey)) {
+			featured.push({ survey: { slug: survey.slug, title: survey.title }, card });
+		}
+	}
+
+	return featured.slice(0, limit);
 }

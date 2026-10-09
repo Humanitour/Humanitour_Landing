@@ -29,7 +29,8 @@ import {
 	filterableQuestions,
 	getPublishedSurvey,
 	loadCollectionDates,
-	prepareExplore
+	prepareExplore,
+	publishedSelection
 } from '$lib/server/survey/queries';
 import type { CellBasis } from '$charts/crosstab-cell';
 import type { Axis } from '$lib/server/survey/explore';
@@ -157,6 +158,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		appliedBasis: basis,
 		droppedMessage: describeDropped(prepared.dropped),
 		reading: describeReading(prepared, filterable),
+		// Les croisements que l equipe met en avant : des permaliens, pas des
+		// chiffres. Celui qu on ouvre est calcule par l explorateur, comme les autres.
+		teamSelection: await publishedSelection(survey),
 		share
 	};
 };

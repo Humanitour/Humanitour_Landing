@@ -344,6 +344,53 @@
 
 <div class="bg-paper">
 	<div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+		{#if data.teamSelection.length > 0}
+			<!--
+				La selection de l equipe. Chaque carte est un permalien de
+				l explorateur : elle n affiche aucun chiffre, celui du moment se lit
+				une fois le croisement ouvert, avec sa base et ses seuils. Les cartes
+				se valent : c est l ordre choisi par l equipe qui les hierarchise.
+			-->
+			<section class="mb-16" aria-labelledby="selection">
+				<h2 id="selection">La sélection de l'équipe</h2>
+				<p class="measure text-ink-soft mt-3 leading-relaxed">
+					Les croisements que l'équipe a trouvés les plus parlants. Chacun s'ouvre dans
+					l'explorateur, avec les chiffres du moment, et vous pouvez ensuite en changer les axes.
+				</p>
+
+				<ol class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{#each data.teamSelection as card (card.id)}
+						{@const active = exploreSearch(current) === card.search}
+						<li class="min-w-0">
+							<a
+								href="?{card.search}#explorateur"
+								aria-current={active ? 'true' : undefined}
+								class="rounded-block press flex h-full flex-col border-2 p-5 {active
+									? 'border-ink'
+									: 'border-ink/12 hover:border-ink/40'}"
+							>
+								<h3 class="text-lg leading-snug">{card.title}</h3>
+								<p class="text-muted mt-2 text-sm">
+									{card.question}{card.crossedWith ? `, croisée avec ${card.crossedWith}` : ''}{card
+										.filters.length > 0
+										? `, parmi ${card.filters.join(' et ')}`
+										: ''}.
+								</p>
+								{#if card.comment}
+									<p class="mt-3 text-sm leading-relaxed">{card.comment}</p>
+								{/if}
+								<span
+									class="mt-auto pt-4 text-sm font-semibold underline decoration-2 underline-offset-2"
+								>
+									{active ? 'Affiché ci-dessous' : 'Afficher ce croisement'}
+								</span>
+							</a>
+						</li>
+					{/each}
+				</ol>
+			</section>
+		{/if}
+
 		<section aria-labelledby="explorateur">
 			<h2 id="explorateur">Explorer</h2>
 			<p class="measure text-ink-soft mt-3 leading-relaxed">
