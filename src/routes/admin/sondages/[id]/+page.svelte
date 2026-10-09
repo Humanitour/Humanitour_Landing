@@ -57,6 +57,12 @@
 				Réponses
 			</a>
 			<a
+				href="/admin/sondages/{data.survey.id}/selection"
+				class="border-ink/25 bg-paper press rounded-pill inline-flex min-h-11 items-center justify-center border px-4 py-2 text-sm font-semibold"
+			>
+				Sélection
+			</a>
+			<a
 				href="/admin/sondages/{data.survey.id}/redressement"
 				class="border-ink/25 bg-paper press rounded-pill inline-flex min-h-11 items-center justify-center border px-4 py-2 text-sm font-semibold"
 			>

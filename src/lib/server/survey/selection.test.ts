@@ -23,7 +23,7 @@ const QUESTIONS: SelectionQuestion[] = [
 	{ code: 'age', label: 'Âge', modalities: [modality('18-24', '18-24 ans')] }
 ];
 
-function form(entries: [string, string][]): FormData {
+function form(entries: readonly (readonly [string, string])[]): FormData {
 	const data = new FormData();
 	for (const [name, value] of entries) data.append(name, value);
 	return data;
