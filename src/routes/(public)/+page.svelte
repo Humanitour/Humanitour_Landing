@@ -24,4 +24,9 @@
 	vit dans `shared/content/templates/home.ts` et se reapplique en un geste. La
 	page, elle, ne fait plus que servir ce que la base contient.
 -->
-<ContentBlocks blocks={data.blocks} tokens={data.tokens} team={data.team} />
+<ContentBlocks
+	blocks={data.blocks}
+	tokens={data.tokens}
+	team={data.team}
+	selection={data.selection}
+/>

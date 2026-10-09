@@ -8,6 +8,7 @@ import { figureGridType } from './blocks/figure-grid';
 import { galleryType } from './blocks/gallery';
 import { newsletterType } from './blocks/newsletter';
 import { pullQuoteType } from './blocks/pull-quote';
+import { selectionType } from './blocks/selection';
 import { splitType } from './blocks/split';
 import { stepsType } from './blocks/steps';
 import { tableType } from './blocks/table';
@@ -44,6 +45,7 @@ const REGISTERED: readonly ContentBlockType[] = [
 	galleryType,
 	embedType,
 	catalogueType,
+	selectionType,
 	newsletterType,
 	ctaType
 ];

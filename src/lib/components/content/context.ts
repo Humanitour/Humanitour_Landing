@@ -36,10 +36,27 @@ export interface ContentCatalogue {
 	readonly controls?: Snippet;
 }
 
+/**
+ * Un croisement de la selection de l'equipe, deja mis en clair par le serveur.
+ * Il ne porte aucun chiffre : `href` ouvre l'explorateur sur ce croisement.
+ */
+export interface ContentSelectionItem {
+	readonly id: string;
+	readonly surveyTitle: string;
+	readonly title: string;
+	readonly comment: string | null;
+	readonly question: string;
+	readonly crossedWith: string | null;
+	readonly filters: readonly string[];
+	readonly href: string;
+}
+
 export interface ContentContext {
 	readonly tokens: ContentTokens;
 	readonly catalogue?: ContentCatalogue;
 	readonly team?: readonly TeamMember[];
+	/** La selection de l'equipe, pour les pages qui la chargent. */
+	readonly selection?: readonly ContentSelectionItem[];
 }
 
 const KEY = Symbol('contenu');

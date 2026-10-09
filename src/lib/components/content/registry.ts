@@ -9,6 +9,7 @@ import FigureGridBlock from './FigureGridBlock.svelte';
 import GalleryBlock from './GalleryBlock.svelte';
 import NewsletterBlock from './NewsletterBlock.svelte';
 import PullQuoteBlock from './PullQuoteBlock.svelte';
+import SelectionBlock from './SelectionBlock.svelte';
 import SplitBlock from './SplitBlock.svelte';
 import StepsBlock from './StepsBlock.svelte';
 import TableBlock from './TableBlock.svelte';
@@ -46,6 +47,7 @@ const REGISTRY: Readonly<Record<string, Component<SectionProps>>> = {
 	gallery: GalleryBlock,
 	embed: EmbedBlock,
 	catalogue: CatalogueBlock,
+	selection: SelectionBlock,
 	newsletter: NewsletterBlock,
 	cta: CtaBlock
 };

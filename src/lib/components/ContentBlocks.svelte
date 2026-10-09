@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { setContentContext, type ContentCatalogue } from './content/context';
+	import {
+		setContentContext,
+		type ContentCatalogue,
+		type ContentSelectionItem
+	} from './content/context';
 	import { sectionComponent } from './content/registry';
 	import type { ContentBlockRecord } from '$lib/shared/content';
 	import type { ContentTokens } from '$lib/shared/content/tokens';
@@ -13,9 +17,11 @@
 		team?: readonly TeamMember[];
 		/** La liste d'une page de catalogue, rendue par la page elle-meme. */
 		catalogue?: ContentCatalogue;
+		/** La selection de l'equipe, pour les pages qui la chargent. */
+		selection?: readonly ContentSelectionItem[];
 	}
 
-	let { blocks, tokens = {}, team, catalogue }: Props = $props();
+	let { blocks, tokens = {}, team, catalogue, selection }: Props = $props();
 
 	/*
 	 * Des accesseurs et non les valeurs : pose telles quelles, elles figeraient
@@ -32,6 +38,9 @@
 		},
 		get catalogue() {
 			return catalogue;
+		},
+		get selection() {
+			return selection;
 		}
 	});
 </script>
