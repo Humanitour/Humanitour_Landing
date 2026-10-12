@@ -9,14 +9,7 @@ import {
 	SEQUENTIAL,
 	SUPPRESSED_COLOR
 } from '../palette';
-import {
-	categoryAxis,
-	chartBase,
-	CHART_INK,
-	CHART_MUTED,
-	endLabel,
-	valueAxis
-} from './theme';
+import { categoryAxis, chartBase, CHART_INK, CHART_MUTED, endLabel, valueAxis } from './theme';
 
 /**
  * Constructeurs d options ECharts.
@@ -168,6 +161,19 @@ export function donutOption(result: DistributionResult, context: ChartContext): 
 	};
 }
 
+/**
+ * Les modalites croisees qui ont au moins un repondant dans la population.
+ *
+ * Le croisement garde toutes les modalites declarees, y compris celles qu un
+ * filtre a videes : filtrer sur deux partis laissait les dix autres dans la
+ * legende, sans aucune barre en face, et amincissait les deux barres restantes
+ * pour faire place a des series vides. Un total MASQUE (`null`) n est pas un
+ * total nul : on ne sait pas ce qu il contient, la serie reste.
+ */
+export function shownColumns(table: CrosstabResult): CrosstabResult['yModalities'] {
+	return table.yModalities.filter((modality) => table.columnTotals.get(modality.key) !== 0);
+}
+
 /** Les modalites croisees, dans l ordre ou elles doivent garder leur couleur. */
 function crossSeries(
 	table: CrosstabResult,
@@ -176,7 +182,7 @@ function crossSeries(
 ): readonly ChartOption[] {
 	const rows = [...table.xModalities].reverse();
 
-	return table.yModalities.map((yModality) => ({
+	return shownColumns(table).map((yModality) => ({
 		name: yModality.label,
 		type: 'bar',
 		stack: stacked ? 'total' : undefined,
@@ -212,25 +218,98 @@ function crossCell(
 	};
 }
 
-function crossLegend(): ChartOption {
+/*
+ * Legende des croisements et des courbes.
+ *
+ * Elle passe a la ligne au lieu de defiler : une legende `scroll` n affichait
+ * que sa premiere page, et les modalites suivantes n etaient atteignables
+ * qu avec des fleches que personne ne voyait. Chaque entree est donc visible.
+ *
+ * Une legende qui passe a la ligne a une hauteur qu ECharts ne reserve pas
+ * dans la grille. Elle est estimee ici, a partir de la longueur des libelles,
+ * pour deux largeurs : celle d un telephone, qui fixe la hauteur du graphique,
+ * et celle d une colonne d ordinateur, ou la legende tient sur moins de lignes
+ * et rend la place au dessin (`media`, lu par ECharts a chaque redimensionnement).
+ */
+const LEGEND_FONT = 12;
+const LEGEND_ICON = 12;
+const LEGEND_GAP = 10;
+/** Largeur moyenne d un caractere, prise large : mieux vaut une ligne de trop. */
+const LEGEND_CHAR = 7;
+const LEGEND_ROW = LEGEND_ICON + LEGEND_GAP + 2;
+const NARROW_WIDTH = 320;
+const WIDE_WIDTH = 640;
+
+/** Nombre de lignes occupees par la legende a une largeur donnee. */
+export function legendRows(labels: readonly string[], width: number): number {
+	if (labels.length === 0) return 0;
+
+	const available = width - 2 * 5;
+	let rows = 1;
+	let line = 0;
+
+	for (const label of labels) {
+		const item = LEGEND_ICON + 5 + label.length * LEGEND_CHAR;
+		const needed = line === 0 ? item : line + LEGEND_GAP + item;
+
+		if (needed > available && line > 0) {
+			rows += 1;
+			line = item;
+		} else {
+			line = needed;
+		}
+	}
+
+	return rows;
+}
+
+/** Hauteur reservee au-dessus de la grille pour la legende. */
+function legendSpace(labels: readonly string[], width: number): number {
+	const rows = legendRows(labels, width);
+	return rows === 0 ? 0 : rows * LEGEND_ROW + 8;
+}
+
+/**
+ * Legende en tete du graphique, et la place qu elle prend.
+ *
+ * En tete : la cle se lit avant les barres qu elle decrit.
+ */
+function crossLegend(labels: readonly string[], gridTop: number) {
+	const narrow = legendSpace(labels, NARROW_WIDTH);
+	const wide = legendSpace(labels, WIDE_WIDTH);
+
 	return {
-		type: 'scroll',
-		bottom: 0,
-		icon: 'roundRect',
-		itemWidth: 12,
-		itemHeight: 12,
-		textStyle: { fontSize: 12, color: '#000000' }
+		/** Hauteur a ajouter au graphique, celle du cas le plus etroit. */
+		space: narrow,
+		legend: {
+			type: 'plain',
+			top: 0,
+			left: 0,
+			icon: 'roundRect',
+			itemWidth: LEGEND_ICON,
+			itemHeight: LEGEND_ICON,
+			itemGap: LEGEND_GAP,
+			textStyle: { fontSize: LEGEND_FONT, color: '#000000' }
+		},
+		gridTop: gridTop + narrow,
+		media: [{ query: { minWidth: WIDE_WIDTH }, option: { grid: { top: gridTop + wide } } }]
 	};
 }
 
 /** Croisement empile : chaque ligne vaut 100 % d elle-meme. */
 export function stackedOption(table: CrosstabResult, context: ChartContext): BuiltChart {
+	const key = crossLegend(
+		shownColumns(table).map((modality) => modality.label),
+		8
+	);
+
 	return {
-		height: Math.max(220, 80 + table.xModalities.length * 44),
+		height: Math.max(220, 44 + table.xModalities.length * 44) + key.space,
 		option: {
 			...chartBase(),
-			legend: crossLegend(),
-			grid: { left: 8, right: 16, top: 8, bottom: 44, containLabel: true },
+			legend: key.legend,
+			media: key.media,
+			grid: { left: 8, right: 16, top: key.gridTop, bottom: 8, containLabel: true },
 			xAxis: valueAxis({ max: 100, percent: true }),
 			yAxis: categoryAxis([...table.xModalities].reverse().map((modality) => modality.label)),
 			series: crossSeries(table, context, true)
@@ -247,7 +326,12 @@ export function stackedOption(table: CrosstabResult, context: ChartContext): Bui
  */
 export function groupedOption(table: CrosstabResult, context: ChartContext): BuiltChart {
 	const rows = table.xModalities.length;
-	const series = Math.max(1, table.yModalities.length);
+	const columns = shownColumns(table);
+	const series = Math.max(1, columns.length);
+	const key = crossLegend(
+		columns.map((modality) => modality.label),
+		8
+	);
 
 	/*
 	 * Une modalite occupe UNE ligne, quel que soit le nombre de series.
@@ -261,11 +345,12 @@ export function groupedOption(table: CrosstabResult, context: ChartContext): Bui
 	const barWidth = Math.max(4, Math.floor(30 / series));
 
 	return {
-		height: Math.max(220, 80 + rows * ROW_HEIGHT),
+		height: Math.max(220, 44 + rows * ROW_HEIGHT) + key.space,
 		option: {
 			...chartBase(),
-			legend: crossLegend(),
-			grid: { left: 8, right: 48, top: 8, bottom: 44, containLabel: true },
+			legend: key.legend,
+			media: key.media,
+			grid: { left: 8, right: 48, top: key.gridTop, bottom: 8, containLabel: true },
 			xAxis: valueAxis({ percent: true }),
 			yAxis: categoryAxis([...table.xModalities].reverse().map((modality) => modality.label)),
 			series: crossSeries(table, context, false).map((serie) => ({
@@ -287,10 +372,11 @@ export function groupedOption(table: CrosstabResult, context: ChartContext): Bui
  */
 export function heatmapOption(table: CrosstabResult, context: ChartContext): BuiltChart {
 	const rows = [...table.xModalities].reverse();
+	const columns = shownColumns(table);
 	const max = maxCellValue(table, context.basis);
 
 	const data = rows.flatMap((xModality, rowIndex) =>
-		table.yModalities.map((yModality, columnIndex) => {
+		columns.map((yModality, columnIndex) => {
 			const reading = readCell(table, xModality.key, yModality.key, context.basis);
 
 			return {
@@ -310,7 +396,7 @@ export function heatmapOption(table: CrosstabResult, context: ChartContext): Bui
 			...chartBase(),
 			grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
 			xAxis: {
-				...categoryAxis(table.yModalities.map((modality) => modality.label)),
+				...categoryAxis(columns.map((modality) => modality.label)),
 				position: 'top'
 			},
 			yAxis: categoryAxis(rows.map((modality) => modality.label)),
@@ -491,19 +577,24 @@ export function timelineOption(result: TimelineResult, context: ChartContext): B
 	}
 
 	const etiquettesDirectes = tracees.length <= 4;
+	const key = crossLegend(
+		tracees.map(({ series }) => series.label),
+		16
+	);
 
 	return {
-		height: 340,
+		height: 316 + key.space,
 		option: {
 			...chartBase(),
 			grid: {
 				left: 8,
 				right: etiquettesDirectes ? 120 : 24,
-				top: 16,
-				bottom: 56,
+				top: key.gridTop,
+				bottom: 8,
 				containLabel: true
 			},
-			legend: crossLegend(),
+			legend: key.legend,
+			media: key.media,
 			xAxis: {
 				...categoryAxis(semaines),
 				boundaryGap: false,

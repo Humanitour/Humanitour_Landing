@@ -4,7 +4,7 @@ import type { AnswerRow } from '$lib/server/survey/aggregate';
 import { buildOutcome, sortOutcome, type Axis } from '$lib/server/survey/explore';
 import { everyone } from '$lib/server/survey/population';
 import { colorFor, colorSlots, NON_RESPONSE_COLOR, SUPPRESSED_COLOR } from '../palette';
-import { barsOption, donutOption, groupedOption, stackedOption } from './options';
+import { barsOption, donutOption, groupedOption, legendRows, stackedOption } from './options';
 
 const PRIORITE: readonly ModalityDescriptor[] = [
 	{ key: 'pouvoir-achat', label: "Le pouvoir d'achat", isNonResponse: false },
@@ -197,6 +197,47 @@ describe('croisements', () => {
 		const series = stackedOption(crosstab(), CROSS_CONTEXT).option.series as { name: string }[];
 
 		expect(series.map((serie) => serie.name)).toEqual(['Bretagne', 'Normandie']);
+	});
+
+	it('ecarte de la legende une modalite croisee que le filtre a videe', () => {
+		// Filtrer sur deux partis laissait les autres dans la legende, sans barre
+		// en face, et amincissait les barres restantes.
+		const base = crosstab();
+		const filtered = {
+			...base,
+			columnTotals: new Map([...base.columnTotals].map(([k, v]) => [k, k === 'nor' ? 0 : v]))
+		};
+
+		for (const build of [groupedOption, stackedOption]) {
+			const series = build(filtered, CROSS_CONTEXT).option.series as { name: string }[];
+			expect(series.map((serie) => serie.name)).toEqual(['Bretagne']);
+		}
+	});
+
+	it('garde une modalite croisee dont le total est masque', () => {
+		const base = crosstab();
+		const masked = {
+			...base,
+			columnTotals: new Map([...base.columnTotals].map(([k, v]) => [k, k === 'nor' ? null : v]))
+		};
+		const series = groupedOption(masked, CROSS_CONTEXT).option.series as { name: string }[];
+
+		expect(series).toHaveLength(2);
+	});
+
+	it('montre toute la legende au lieu de la faire defiler', () => {
+		const built = groupedOption(crosstab(), CROSS_CONTEXT);
+		const legend = built.option.legend as { type: string };
+
+		expect(legend.type).toBe('plain');
+	});
+
+	it('reserve la place d une legende sur plusieurs lignes', () => {
+		const labels = Array.from({ length: 12 }, (_, i) => `Parti numéro ${i}`);
+
+		expect(legendRows(labels, 320)).toBeGreaterThan(legendRows(labels, 640));
+		expect(legendRows(['Bretagne', 'Normandie'], 320)).toBe(1);
+		expect(legendRows([], 320)).toBe(0);
 	});
 
 	it('plafonne l axe des parts a 100 en empile', () => {
