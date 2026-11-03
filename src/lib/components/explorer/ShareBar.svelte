@@ -22,6 +22,8 @@
 		longCitation: string;
 		codeExamples: readonly CodeExample[];
 		csvUrl: string;
+		/** Le meme resultat en tableau (ligne x colonne). Absent pour un decoupage. */
+		tableUrl?: string | null;
 		apiUrl: string;
 		pageUrl: string;
 		/**
@@ -31,8 +33,16 @@
 		downloadImage: ((quality: PosterQuality) => Promise<void>) | null;
 	}
 
-	let { shortCitation, longCitation, codeExamples, csvUrl, apiUrl, pageUrl, downloadImage }: Props =
-		$props();
+	let {
+		shortCitation,
+		longCitation,
+		codeExamples,
+		csvUrl,
+		tableUrl = null,
+		apiUrl,
+		pageUrl,
+		downloadImage
+	}: Props = $props();
 
 	/** Vrai une fois la page reprise par le navigateur. */
 	let interactive = $state(false);
@@ -94,6 +104,16 @@
 		>
 			Télécharger ce croisement
 		</a>
+		{#if tableUrl}
+			<a
+				href={tableUrl}
+				data-sveltekit-reload
+				download
+				class="border-ink/25 bg-paper press rounded-pill inline-flex min-h-11 items-center border px-5 py-2.5 text-sm font-semibold"
+			>
+				Tableau (CSV)
+			</a>
+		{/if}
 		{#if interactive && downloadImage}
 			<!--
 				L affiche emporte la question exacte, la base, le terrain et la

@@ -388,6 +388,7 @@ function buildShare(input: {
 		pageUrl,
 		apiUrl,
 		csvUrl: `/donnees/${survey.slug}/croisement.csv${query}`,
+		tableUrl: `/donnees/${survey.slug}/croisement.csv?${search ? `${search}&` : ''}format=tableau`,
 		shortCitation: shortCitation(context),
 		longCitation: longCitation(context),
 		codeExamples: codeExamples(apiUrl)

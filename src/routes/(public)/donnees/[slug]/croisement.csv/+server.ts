@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { parseExploreParams } from '$shared/explore';
 import { buildOutcome, buildPanels } from '$lib/server/survey/explore';
 import { getPublishedSurvey, prepareExplore } from '$lib/server/survey/queries';
-import { panelsToCsv, resultToCsv } from '$lib/server/survey/result-csv';
+import { panelsToCsv, resultToCsv, tableToCsv } from '$lib/server/survey/result-csv';
 import type { RequestHandler } from './$types';
 
 /**
@@ -34,9 +34,10 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 
 	// Decoupe en panneaux, le fichier gagne une colonne plutot qu une structure
 	// imbriquee : il reste ouvrable dans un tableur.
-	const csv = prepared.z
-		? panelsToCsv(buildPanels(inputs, prepared.z))
-		: resultToCsv(buildOutcome(inputs));
+	// `format=tableau` : une variable en ligne, l autre en colonne, pour un
+	// rapport. Sans decoupage seulement : trois variables ne tiennent pas a plat.
+	const matrix = url.searchParams.get('format') === 'tableau' && !prepared.z;
+	const csv = matrix ? matrixCsv(prepared, inputs) : flatCsv(prepared, inputs);
 
 	// Le nom du fichier porte le croisement : trois exports dans un dossier de
 	// telechargements doivent rester distinguables sans etre ouverts.
@@ -44,7 +45,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 	// Un fichier redresse ne doit pas pouvoir passer pour le brut une fois
 	// sorti de son contexte : la lecture est dans le nom.
 	const reading = prepared.weights ? '-redresse' : '';
-	const filename = `humanitour-${survey.slug}-${axes}${reading}.csv`;
+	const filename = `humanitour-${survey.slug}-${axes}${reading}${matrix ? '-tableau' : ''}.csv`;
 
 	return new Response(csv, {
 		headers: {
@@ -56,3 +57,18 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		}
 	});
 };
+
+type Prepared = NonNullable<Awaited<ReturnType<typeof prepareExplore>>>;
+type Inputs = Parameters<typeof buildOutcome>[0];
+
+function matrixCsv(prepared: Prepared, inputs: Inputs): string {
+	const title = [prepared.x.label, prepared.y?.label].filter(Boolean).join(' × ');
+	const raw = prepared.weights ? buildOutcome({ ...inputs, weights: null }) : null;
+	return tableToCsv(buildOutcome(inputs), raw, title);
+}
+
+function flatCsv(prepared: Prepared, inputs: Inputs): string {
+	return prepared.z
+		? panelsToCsv(buildPanels(inputs, prepared.z))
+		: resultToCsv(buildOutcome(inputs));
+}

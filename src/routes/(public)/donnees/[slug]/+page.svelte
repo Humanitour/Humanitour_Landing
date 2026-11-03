@@ -940,6 +940,7 @@
 									longCitation={data.share.longCitation}
 									codeExamples={data.share.codeExamples}
 									csvUrl={data.share.csvUrl}
+									tableUrl={data.panels ? null : data.share.tableUrl}
 									apiUrl={data.share.apiUrl}
 									pageUrl={data.share.pageUrl}
 								/>

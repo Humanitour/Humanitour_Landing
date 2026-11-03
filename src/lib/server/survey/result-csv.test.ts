@@ -3,7 +3,7 @@ import { NON_RESPONSE_KEY, type ModalityDescriptor } from '$shared/questions';
 import type { AnswerRow } from './aggregate';
 import { buildOutcome, buildPanels, type Axis } from './explore';
 import { everyone } from './population';
-import { panelsToCsv, resultToCsv } from './result-csv';
+import { panelsToCsv, resultToCsv, tableToCsv } from './result-csv';
 
 const PRIORITE: readonly ModalityDescriptor[] = [
 	{ key: 'pouvoir-achat', label: "Le pouvoir d'achat", isNonResponse: false },
@@ -183,5 +183,24 @@ describe('export en petits multiples', () => {
 
 	it('rend un en-tete seul quand il n y a aucun panneau', () => {
 		expect(linesOf(panelsToCsv([]))).toEqual(['panneau']);
+	});
+});
+
+describe('export en tableau', () => {
+	it('met une variable en ligne, l autre en colonne, en % de la ligne', () => {
+		const outcome = buildOutcome({
+			x: Y,
+			y: X,
+			population: everyone(4),
+			threshold: 1,
+			includeNonResponses: false
+		});
+		const lines = linesOf(tableToCsv(outcome, null, 'Région × Priorité'));
+
+		expect(lines[0]).toBe(
+			`Région × Priorité (% en ligne – données brutes),Le pouvoir d'achat,"La santé, l’hôpital",Effectif`
+		);
+		expect(lines[1]).toBe('Bretagne,66.7,33.3,3');
+		expect(lines[2]).toBe('Ensemble,66.7,33.3,3');
 	});
 });

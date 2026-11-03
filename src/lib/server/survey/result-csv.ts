@@ -1,4 +1,5 @@
 import { escapeCsv } from './export';
+import { rankedColumns } from '$charts/echarts/options';
 import type { ExploreOutcome, Panel } from './explore';
 
 /**
@@ -123,4 +124,68 @@ export function panelsToCsv(panels: readonly Panel[]): string {
 	const lines = [header, ...blocks.flatMap((block) => block.rows)];
 
 	return `${BOM}${lines.join(CRLF)}${CRLF}`;
+}
+
+/*
+ * Le meme resultat, en TABLEAU : une variable en ligne, l autre en colonne.
+ *
+ * Fait pour etre colle tel quel dans un graphique de rapport (Canva, tableur) :
+ * une case par part, en pourcentage de la ligne, et la base de chaque ligne en
+ * derniere colonne. En lecture redressee, le tableau brut suit, separe par une
+ * ligne vide : les deux lectures voyagent ensemble.
+ */
+
+/** Pourcentage a une decimale, point decimal : relu comme un nombre partout. */
+function percentCell(value: number | null): string | null {
+	return value === null ? null : (value * 100).toFixed(1);
+}
+
+function matrixRows(outcome: ExploreOutcome, title: string): readonly string[] {
+	if (outcome.kind === 'distribution') {
+		const result = outcome.distribution;
+		return [
+			line([title, '%', 'Effectif']),
+			...result.bars.map((bar) => line([bar.label, percentCell(bar.share), bar.count]))
+		];
+	}
+	if (outcome.kind !== 'crosstab') return [line([title])];
+
+	const table = outcome.crosstab;
+	const columns = rankedColumns(table);
+	const total = columns.reduce((acc, column) => acc + (table.columnTotals.get(column.key) ?? 0), 0);
+
+	return [
+		line([title, ...columns.map((column) => column.label), 'Effectif']),
+		...table.xModalities.map((row) =>
+			line([
+				row.label,
+				...columns.map((column) =>
+					percentCell(table.cells.get(row.key)?.get(column.key)?.share ?? null)
+				),
+				table.rowTotals.get(row.key) ?? null
+			])
+		),
+		line([
+			'Ensemble',
+			...columns.map((column) =>
+				percentCell(total > 0 ? (table.columnTotals.get(column.key) ?? 0) / total : null)
+			),
+			total
+		])
+	];
+}
+
+export function tableToCsv(
+	outcome: ExploreOutcome,
+	raw: ExploreOutcome | null,
+	title: string
+): string {
+	const blocks = raw
+		? [
+				matrixRows(outcome, `${title} (% en ligne – données redressées)`),
+				matrixRows(raw, `${title} (% en ligne – données brutes)`)
+			]
+		: [matrixRows(outcome, `${title} (% en ligne – données brutes)`)];
+
+	return `${BOM}${blocks.map((rows) => rows.join(CRLF)).join(CRLF + CRLF)}${CRLF}`;
 }
