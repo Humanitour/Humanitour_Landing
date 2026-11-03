@@ -17,6 +17,7 @@ import {
 	buildPanels,
 	describeDropped,
 	describeUnavailableWeighting,
+	notAskedCount,
 	resolveSort,
 	shapeOf,
 	sortOutcome
@@ -157,6 +158,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		appliedSort: sort,
 		appliedBasis: basis,
 		droppedMessage: describeDropped(prepared.dropped),
+		notAsked: requested.includeNonResponses ? [] : describeNotAsked(prepared),
 		reading: describeReading(prepared, filterable),
 		// Les croisements que l equipe met en avant : des permaliens, pas des
 		// chiffres. Celui qu on ouvre est calcule par l explorateur, comme les autres.
@@ -164,6 +166,21 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		share
 	};
 };
+
+/**
+ * Les personnes retirees de la base parce que la question ne leur a pas ete
+ * posee, axe par axe. Un nombre sous le seuil n est pas publie : sur une
+ * population filtree, il designerait quelqu un.
+ */
+function describeNotAsked(prepared: Awaited<ReturnType<typeof prepareExplore>> & object) {
+	const size = prepared.population.size;
+
+	return [prepared.x, prepared.y]
+		.filter((axis): axis is Axis => axis !== null)
+		.map((axis) => ({ label: axis.label, count: notAskedCount(axis, prepared.population) }))
+		.filter(({ count }) => count > 0 && count >= prepared.threshold && size > 0)
+		.map(({ label, count }) => ({ label, count, share: count / size }));
+}
 
 /** La lecture servie, brute ou redressee, et de quoi proposer l autre. */
 function describeReading(

@@ -109,6 +109,18 @@ function compareModalityKeys(a: string, b: string): number {
 	return a.localeCompare(b, 'fr');
 }
 
+/**
+ * Les lignes a compter.
+ *
+ * Retirer la non-reponse de l affichage sans la retirer de la base donnait des
+ * parts qui ne sommaient plus a 100 % : le repondant a qui la question n a pas
+ * ete posee restait au denominateur. On la retire donc AVANT de compter.
+ */
+function retained(answers: readonly AnswerRow[], options: AggregateOptions): readonly AnswerRow[] {
+	if (options.includeNonResponses !== false) return answers;
+	return answers.filter((answer) => answer.modalityKey !== NON_RESPONSE_KEY);
+}
+
 /** Repondants distincts : un repondant ayant coche trois cases ne compte qu une fois. */
 function countRespondents(answers: readonly AnswerRow[]): number {
 	return new Set(answers.map((answer) => answer.responseId)).size;
@@ -168,10 +180,11 @@ function share(count: number | null, base: number): number | null {
 
 /** Distribution d une question : l effectif de chaque modalite. */
 export function distribution(
-	answers: readonly AnswerRow[],
+	allAnswers: readonly AnswerRow[],
 	declared: readonly ModalityDescriptor[],
 	options: AggregateOptions = {}
 ): DistributionResult {
+	const answers = retained(allAnswers, options);
 	const { raw, weighted } = countByModality(answers, options.weights);
 	const respondents = countRespondents(answers);
 	const weightedRespondents = weighRespondents(answers, options.weights);
@@ -402,6 +415,8 @@ export function crosstab(
 	yDeclared: readonly ModalityDescriptor[],
 	options: AggregateOptions = {}
 ): CrosstabResult {
+	xAnswers = retained(xAnswers, options);
+	yAnswers = retained(yAnswers, options);
 	const { raw: counted, weighted } = pairs(xAnswers, yAnswers, options.weights);
 
 	const observedX = [...counted.keys()].map((key) => key.split('\u0000')[0] ?? '');

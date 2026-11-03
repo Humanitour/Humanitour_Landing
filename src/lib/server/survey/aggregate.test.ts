@@ -61,13 +61,15 @@ describe('distribution', () => {
 		expect(result.bars.find((bar) => bar.key === 'oui')?.share).toBeCloseTo(50 / 80);
 	});
 
-	it('peut retirer la non-reponse de l affichage sans changer la base', () => {
+	it('retire la non-reponse de la base quand on la retire de l affichage', () => {
 		const rows = [...answers('oui', 50), ...answers(NON_RESPONSE_KEY, 30)];
 		const result = distribution(rows, YES_NO, { includeNonResponses: false });
 
 		expect(result.bars.some((bar) => bar.isNonResponse)).toBe(false);
-		// Le retrait est un choix d affichage : il ne doit pas gonfler les parts.
-		expect(result.respondents).toBe(80);
+		// Les personnes a qui la question n a pas ete posee ne comptent pas : les
+		// parts restantes somment a 100 %.
+		expect(result.respondents).toBe(50);
+		expect(result.bars.find((bar) => bar.key === 'oui')?.share).toBe(1);
 	});
 
 	it('ne compte qu une fois un repondant ayant coche plusieurs modalites', () => {

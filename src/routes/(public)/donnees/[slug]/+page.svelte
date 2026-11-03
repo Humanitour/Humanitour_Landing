@@ -104,9 +104,7 @@
 			y: textOf(fields.get('y')),
 			z: textOf(fields.get('z')),
 			chart: textOf(fields.get('chart')) ?? '',
-			// La case cochee ajoute « 1 » devant le « 0 » du champ cache : c est
-			// ainsi que le serveur distingue « decochee » de « absente ».
-			includeNonResponses: fields.getAll('nr').includes('1'),
+			includeNonResponses: fields.get('nr') === '1',
 			filters: parseFilterValues(fields.getAll(PARAM_FILTER).map(String)),
 			sort: parseSort(textOf(fields.get('tri'))),
 			basis: parseCellBasis(textOf(fields.get('base'))),
@@ -516,15 +514,8 @@
 								checked={data.selection.includeNonResponses}
 								class="accent-coral h-5 w-5 shrink-0"
 							/>
-							<span>Afficher les non-réponses</span>
+							<span>Compter les non-interrogés</span>
 						</label>
-						<!--
-							Le serveur ne retire la non-reponse que sur la valeur « 0 ». Une
-							case decochee n envoie rien du tout : sans ce champ, la decocher
-							restait sans effet. Il est place APRES la case pour que, cochee,
-							« 1 » arrive en premier et l emporte.
-						-->
-						<input type="hidden" name="nr" value="0" />
 					</div>
 
 					<div class="border-ink/12 border-t p-5">
@@ -651,6 +642,12 @@
 							{data.reading.unavailableMessage}
 						</p>
 					{/if}
+					{#each data.notAsked as notAsked (notAsked.label)}
+						<p class="text-ink-soft mb-4 text-sm leading-relaxed" role="note">
+							{formatCount(notAsked.count)} sondés ({formatShare(notAsked.share)}) n'ont pas été interrogés
+							sur la question « {notAsked.label} » : ils ne sont pas comptés dans les pourcentages.
+						</p>
+					{/each}
 
 					<!--
 						Aucun filet decoratif en tete : un trait colore qui ne porte pas

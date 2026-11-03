@@ -1,4 +1,4 @@
-import type { ModalityDescriptor } from '$shared/questions';
+import { NON_RESPONSE_KEY, type ModalityDescriptor } from '$shared/questions';
 import type { FilterClause, SortMode } from '$shared/explore';
 import {
 	crosstab,
@@ -330,6 +330,20 @@ export function suppressedCount(outcome: ExploreOutcome): number {
 	if (outcome.kind === 'distribution') return outcome.distribution.suppressedCount;
 	if (outcome.kind === 'crosstab') return outcome.crosstab.suppressedCount;
 	return 0;
+}
+
+/**
+ * Repondants de la population a qui la question n a pas ete posee.
+ *
+ * Retires de la base par defaut, ils sont annonces au-dessus du resultat : un
+ * retrait qu on ne chiffre pas ferait douter de chaque pourcentage.
+ */
+export function notAskedCount(axis: Axis, population: Population): number {
+	const ids = within(axis.rows, population)
+		.filter((row) => row.modalityKey === NON_RESPONSE_KEY)
+		.map((row) => row.responseId);
+
+	return new Set(ids).size;
 }
 
 /** Repondants servant de base aux pourcentages. `null` quand rien n est publie. */

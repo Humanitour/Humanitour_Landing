@@ -127,7 +127,7 @@ export function cardSearch(
 		y: card.yCode,
 		z: null,
 		chart: card.chart,
-		includeNonResponses: true,
+		includeNonResponses: false,
 		filters: parseFilterValues(readCardFilters(card.filters)),
 		sort: null,
 		basis: null,

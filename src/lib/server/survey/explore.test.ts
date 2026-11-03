@@ -97,14 +97,13 @@ describe('buildOutcome, sans filtre', () => {
 		expect(nonResponse?.count).toBe(2);
 	});
 
-	it('retire la non-reponse de l affichage sans changer la base', () => {
+	it('retire la non-reponse de l affichage et de la base', () => {
 		const outcome = distributionOf({ includeNonResponses: false });
 		if (outcome.kind !== 'distribution') throw new Error('distribution attendue');
 
 		expect(outcome.distribution.bars.some((bar) => bar.isNonResponse)).toBe(false);
-		// La base reste celle de tous les repondants : retirer la non-reponse de
-		// l ecran ne doit jamais gonfler les parts des autres modalites.
-		expect(outcome.distribution.respondents).toBe(6);
+		const total = outcome.distribution.bars.reduce((acc, bar) => acc + (bar.share ?? 0), 0);
+		expect(total).toBeCloseTo(1);
 	});
 
 	it('croise deux questions', () => {

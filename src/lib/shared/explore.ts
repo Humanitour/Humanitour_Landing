@@ -156,9 +156,10 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
 		y: params.get(PARAM_Y),
 		z: params.get(PARAM_Z),
 		chart: params.get(PARAM_CHART) ?? '',
-		// Seule la valeur « 0 » exclut. Un parametre absent, vide ou inattendu
-		// AFFICHE la non-reponse : l oubli doit pencher du cote de la montrer.
-		includeNonResponses: params.get(PARAM_NON_RESPONSES) !== '0',
+		// Seule la valeur « 1 » inclut. Les personnes a qui la question n a pas
+		// ete posee ne comptent pas dans la base par defaut : la page le dit
+		// au-dessus du resultat, avec leur nombre.
+		includeNonResponses: params.get(PARAM_NON_RESPONSES) === '1',
 		filters: parseFilterValues(params.getAll(PARAM_FILTER)),
 		sort: parseSort(params.get(PARAM_SORT)),
 		basis: parseCellBasis(params.get(PARAM_BASIS)),
@@ -180,7 +181,7 @@ export function exploreSearch(params: ExploreParams): string {
 	if (params.y) search.set(PARAM_Y, params.y);
 	if (params.z) search.set(PARAM_Z, params.z);
 	if (params.chart) search.set(PARAM_CHART, params.chart);
-	if (!params.includeNonResponses) search.set(PARAM_NON_RESPONSES, '0');
+	if (params.includeNonResponses) search.set(PARAM_NON_RESPONSES, '1');
 
 	if (params.sort) search.set(PARAM_SORT, params.sort);
 	if (params.basis) search.set(PARAM_BASIS, params.basis);
