@@ -58,7 +58,8 @@
 		filters: data.selection.filters,
 		sort: data.selection.sort,
 		basis: data.selection.basis,
-		weighted: data.reading.weighted
+		weighted: data.reading.weighted,
+		grouped: data.selection.grouped
 	});
 
 	/** Adresse de l explorateur ou un seul aspect change. Les autres survivent. */
@@ -109,7 +110,8 @@
 			filters: parseFilterValues(fields.getAll(PARAM_FILTER).map(String)),
 			sort: parseSort(textOf(fields.get('tri'))),
 			basis: parseCellBasis(textOf(fields.get('base'))),
-			weighted: fields.get(PARAM_READING) === WEIGHTED_READING
+			weighted: fields.get(PARAM_READING) === WEIGHTED_READING,
+			grouped: fields.get('blocs') === '1'
 		};
 	}
 
@@ -528,6 +530,18 @@
 							/>
 							<span>Compter les non-interrogés</span>
 						</label>
+						{#if data.groupable}
+							<label class="flex min-h-11 items-center gap-3">
+								<input
+									type="checkbox"
+									name="blocs"
+									value="1"
+									checked={data.selection.grouped}
+									class="accent-coral h-5 w-5 shrink-0"
+								/>
+								<span>Regrouper par blocs (gauche, centre, droite)</span>
+							</label>
+						{/if}
 					</div>
 
 					<div class="border-ink/12 border-t p-5">

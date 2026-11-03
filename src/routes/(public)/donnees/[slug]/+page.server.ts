@@ -11,6 +11,7 @@ import {
 	buildPanels,
 	describeDropped,
 	describeUnavailableWeighting,
+	blocsOf,
 	notAskedCount,
 	resolveSort,
 	shapeOf,
@@ -136,6 +137,10 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			? { key: chart.key, option: built.option, height: built.height, svg: renderChartSvg(built) }
 			: null,
 		chartIsTabular: chart.tabular,
+		// La case « regrouper par blocs » n a de sens que si un axe en declare.
+		groupable: [prepared.xQuestion, prepared.yQuestion].some(
+			(question) => question !== null && blocsOf(question.config).length > 0
+		),
 		threshold: prepared.threshold,
 		population: {
 			// Sous le seuil, l effectif de la sous-population est lui-meme un
@@ -220,7 +225,8 @@ function describeSelection(
 		filters: requested.filters,
 		sort: requested.sort,
 		basis: requested.basis,
-		weighted: requested.weighted
+		weighted: requested.weighted,
+		grouped: requested.grouped
 	};
 }
 

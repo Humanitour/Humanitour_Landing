@@ -93,6 +93,60 @@ export function selectAxes<Q extends { readonly code: string }>(
 	return { x, y, z: distinct ? requestedZ : null };
 }
 
+/** Un bloc de modalites : « Gauche » = LFI + PCF + EELV + PS... */
+export interface Bloc {
+	readonly label: string;
+	readonly codes: readonly string[];
+}
+
+/**
+ * Les blocs declares dans la configuration d une question (`config.blocs`).
+ *
+ * Lus prudemment : la configuration est du JSON saisi a la main au
+ * back-office, et un bloc mal forme est ignore plutot que de casser la page.
+ */
+export function blocsOf(config: Record<string, unknown>): readonly Bloc[] {
+	const raw = config.blocs;
+	if (!Array.isArray(raw)) return [];
+
+	return raw.flatMap((entry: unknown) => {
+		const bloc = entry as { label?: unknown; codes?: unknown };
+		if (typeof bloc?.label !== 'string' || !Array.isArray(bloc.codes)) return [];
+		return [{ label: bloc.label, codes: bloc.codes.filter((code) => typeof code === 'string') }];
+	});
+}
+
+/**
+ * Un axe dont les modalites sont regroupees en blocs.
+ *
+ * Chaque reponse prend la cle de son bloc : le total « Gauche » est alors le
+ * nombre de PERSONNES ayant choisi un parti de gauche, compte une seule fois
+ * par l agregation, et non la somme de parts arrondies. Les modalites hors
+ * bloc (« Blanc », « Je ne sais pas ») restent telles quelles, apres les blocs.
+ */
+export function groupAxis(axis: Axis, blocs: readonly Bloc[]): Axis {
+	if (blocs.length === 0) return axis;
+
+	const blocOf = new Map(
+		blocs.flatMap((bloc) => bloc.codes.map((code) => [code, `bloc:${bloc.label}`]))
+	);
+	const grouped = blocs.map((bloc) => ({
+		key: `bloc:${bloc.label}`,
+		label: bloc.label,
+		isNonResponse: false,
+		color: null
+	}));
+
+	return {
+		...axis,
+		modalities: [...grouped, ...axis.modalities.filter((modality) => !blocOf.has(modality.key))],
+		rows: axis.rows.map((row) => ({
+			responseId: row.responseId,
+			modalityKey: blocOf.get(row.modalityKey) ?? row.modalityKey
+		}))
+	};
+}
+
 /** Forme de donnees demandee, independamment de ce qu on a pu publier. */
 export function shapeOf(inputs: Pick<ExploreInputs, 'y'>): 'distribution' | 'crosstab' {
 	return inputs.y ? 'crosstab' : 'distribution';

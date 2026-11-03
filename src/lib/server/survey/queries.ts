@@ -7,7 +7,7 @@ import type { ExploreParams, FilterClause } from '$shared/explore';
 import { prisma } from '../db';
 import { pickThreshold } from './anonymity';
 import type { AnswerRow } from './aggregate';
-import { selectAxes, type Axis } from './explore';
+import { blocsOf, groupAxis, selectAxes, type Axis } from './explore';
 import { describeCards, type PublicCard } from './selection';
 import { loadPublishedWeighting, loadWeights, type PublicWeighting } from './weighting-store';
 import {
@@ -324,6 +324,9 @@ export async function prepareExplore(
 		loadPublishedWeighting(survey.id)
 	]);
 
+	const group = (axis: Axis | null, question: PublicQuestion | null) =>
+		axis && question && params.grouped ? groupAxis(axis, blocsOf(question.config)) : axis;
+
 	// Un redressement perime ne sert pas : des reponses sans poids compteraient
 	// pour 1 a cote de reponses calees, et la lecture melangerait deux
 	// populations. On retombe alors sur le brut, et on le dit.
@@ -332,9 +335,9 @@ export async function prepareExplore(
 	return {
 		xQuestion,
 		yQuestion,
-		x,
-		y,
-		z,
+		x: group(x, xQuestion) ?? x,
+		y: group(y, yQuestion),
+		z: group(z, zQuestion),
 		population: populated.population,
 		dropped: populated.dropped,
 		threshold,

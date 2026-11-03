@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { NON_RESPONSE_KEY, type ModalityDescriptor } from '$shared/questions';
 import type { AnswerRow } from './aggregate';
 import {
+	blocsOf,
+	groupAxis,
 	baseOf,
 	buildFilterGroups,
 	buildOutcome,
@@ -565,5 +567,52 @@ describe('lecture redressee', () => {
 		expect(outcome.crosstab.rowTotals.get('pouvoir-achat')).toBeCloseTo(4, 6);
 		expect(outcome.crosstab.columnTotals.get('nor')).toBeCloseTo(1.5, 6);
 		expect(outcome.crosstab.cells.get('sante')?.get('nor')?.share).toBeCloseTo(1, 6);
+	});
+});
+
+describe('regroupement par blocs', () => {
+	const VOTE: Axis = {
+		code: 'vote',
+		label: 'Vote',
+		modalities: [
+			{ key: 'lfi', label: 'LFI', isNonResponse: false },
+			{ key: 'ps', label: 'PS', isNonResponse: false },
+			{ key: 'rn', label: 'RN', isNonResponse: false },
+			{ key: 'blanc', label: 'Blanc', isNonResponse: false }
+		],
+		rows: [
+			{ responseId: 'a', modalityKey: 'lfi' },
+			{ responseId: 'b', modalityKey: 'ps' },
+			{ responseId: 'c', modalityKey: 'rn' },
+			{ responseId: 'd', modalityKey: 'blanc' }
+		]
+	};
+	const blocs = blocsOf({
+		blocs: [
+			{ label: 'Gauche', codes: ['lfi', 'ps'] },
+			{ label: 'Droite', codes: ['rn'] },
+			{ label: 42 }
+		]
+	});
+
+	it('ignore un bloc mal forme', () => {
+		expect(blocs.map((bloc) => bloc.label)).toEqual(['Gauche', 'Droite']);
+	});
+
+	it('compte chaque bloc en personnes, et garde les modalites hors bloc', () => {
+		const outcome = buildOutcome({
+			x: groupAxis(VOTE, blocs),
+			y: null,
+			population: everyone(4),
+			threshold: 1,
+			includeNonResponses: false
+		});
+		if (outcome.kind !== 'distribution') throw new Error('distribution attendue');
+
+		expect(outcome.distribution.bars.map((bar) => [bar.label, bar.count])).toEqual([
+			['Gauche', 2],
+			['Droite', 1],
+			['Blanc', 1]
+		]);
 	});
 });

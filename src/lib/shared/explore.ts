@@ -46,6 +46,8 @@ export const PARAM_BASIS = 'base';
  * brute, qui reste la reference : un lien partage sans ce parametre ne doit
  * jamais basculer tout seul sur des chiffres ponderes.
  */
+/** Regroupement des modalites en blocs (gauche, centre, droite), quand la question en declare. */
+export const PARAM_BLOCS = 'blocs';
 export const PARAM_READING = 'lecture';
 export const WEIGHTED_READING = 'redresse';
 
@@ -104,6 +106,8 @@ export interface ExploreParams {
 	readonly basis: CellBasis | null;
 	/** Lecture redressee demandee. Elle n est servie que si un redressement est publie. */
 	readonly weighted: boolean;
+	/** Modalites regroupees en blocs, pour les questions qui en declarent. */
+	readonly grouped?: boolean;
 }
 
 /**
@@ -163,7 +167,8 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
 		filters: parseFilterValues(params.getAll(PARAM_FILTER)),
 		sort: parseSort(params.get(PARAM_SORT)),
 		basis: parseCellBasis(params.get(PARAM_BASIS)),
-		weighted: params.get(PARAM_READING) === WEIGHTED_READING
+		weighted: params.get(PARAM_READING) === WEIGHTED_READING,
+		grouped: params.get(PARAM_BLOCS) === '1'
 	};
 }
 
@@ -186,6 +191,7 @@ export function exploreSearch(params: ExploreParams): string {
 	if (params.sort) search.set(PARAM_SORT, params.sort);
 	if (params.basis) search.set(PARAM_BASIS, params.basis);
 	if (params.weighted) search.set(PARAM_READING, WEIGHTED_READING);
+	if (params.grouped) search.set(PARAM_BLOCS, '1');
 
 	for (const clause of params.filters) {
 		for (const key of clause.modalityKeys) {

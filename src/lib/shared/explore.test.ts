@@ -118,6 +118,7 @@ describe('exploreSearch', () => {
 			sort: 'effectif',
 			basis: 'colonne',
 			weighted: true,
+			grouped: true,
 			filters: [
 				{ questionCode: 'region', modalityKeys: ['bre', 'nor'] },
 				{ questionCode: 'age', modalityKeys: ['18-24'] }
