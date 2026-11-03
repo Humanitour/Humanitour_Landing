@@ -58,7 +58,7 @@ export const multipleChoice: QuestionType = {
 			if (!option) return { ok: false, reason: `Modalité inconnue : « ${part} ».` };
 			// Une modalite citee deux fois dans la meme cellule ne compte qu une fois,
 			// sans quoi ce repondant pesera double dans sa propre part.
-			if (option.isNonResponse || seen.has(option.code)) continue;
+			if (seen.has(option.code)) continue;
 
 			seen.add(option.code);
 			values.push({
@@ -69,7 +69,6 @@ export const multipleChoice: QuestionType = {
 			});
 		}
 
-		// Ne cocher que « sans opinion » est une non-reponse, pas une reponse vide.
 		if (values.length === 0) return { ok: true, values: [nonResponseValue()] };
 
 		const max = context.config.maxChoices;

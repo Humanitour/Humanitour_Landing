@@ -60,7 +60,7 @@ describe('planQuestionsFromForm', () => {
 		expect(plan.drafts[0]?.options[0]?.code.length).toBeGreaterThan(40);
 	});
 
-	it('marque les non-reponses declarees, et elles seules', () => {
+	it('ne marque aucune option comme non-reponse, « ne se prononce pas » compris', () => {
 		const plan = planQuestionsFromForm(
 			[
 				radio('c', 'Vote', [
@@ -72,11 +72,11 @@ describe('planQuestionsFromForm', () => {
 			[]
 		);
 
-		// « Aucun » est une reponse, pas une abstention : la classer en
-		// non-reponse ferait disparaitre un choix reel (AGENTS.md section 1.2).
+		// Seule la question laissee vide est une non-reponse : un choix coche,
+		// meme « ne se prononce pas », est une reponse (AGENTS.md section 1.2).
 		expect(plan.drafts[0]?.options.map((option) => option.isNonResponse)).toEqual([
 			false,
-			true,
+			false,
 			false
 		]);
 	});

@@ -112,28 +112,6 @@ export interface ExistingQuestion {
 }
 
 /**
- * Les modalites qui disent « je ne reponds pas ».
- *
- * Volontairement etroite. « Aucun » ou « Rien de tout cela » sont des reponses
- * a part entiere dans un sondage d'opinion, pas des non-reponses : les marquer
- * ferait disparaitre un choix reel dans la colonne des abstentions, ce qui est
- * exactement le reproche que l'institut fait aux autres (AGENTS.md section
- * 1.2). Une modalite mal classee reste corrigeable a l'ecran.
- */
-const NON_RESPONSE_PATTERNS: readonly RegExp[] = [
-	/\bne\s+se\s+prononce\s+pas\b/i,
-	/\bsans\s+(opinion|avis|r[eé]ponse)\b/i,
-	/\bne\s+(sais|souhaite)\s+pas\b/i,
-	/\bpr[eé]f[eè]re\s+ne\s+pas\s+r[eé]pondre\b/i,
-	/\brefus\s+de\s+r[eé]pondre\b/i,
-	/^nsp$/i
-];
-
-function looksLikeNonResponse(label: string): boolean {
-	return NON_RESPONSE_PATTERNS.some((pattern) => pattern.test(label.trim()));
-}
-
-/**
  * Le code d'une modalite vient de la VALEUR distante, pas de son libelle.
  *
  * C'est elle qui arrive dans les soumissions (`toCell` ne traduit rien), et
@@ -161,7 +139,7 @@ function planOptions(field: OpenformsField): readonly OptionDraft[] {
 			code: base,
 			label: label === '' ? option.value : label,
 			position: options.length,
-			isNonResponse: looksLikeNonResponse(label),
+			isNonResponse: false,
 			color: option.color ?? null
 		});
 	}

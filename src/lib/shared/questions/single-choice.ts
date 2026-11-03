@@ -34,9 +34,6 @@ export const singleChoice: QuestionType = {
 		if (!option) {
 			return { ok: false, reason: `Modalité inconnue : « ${String(raw).trim()} ».` };
 		}
-		// Une option explicitement marquee « sans opinion » rejoint la non-reponse :
-		// une seule cle pour un seul concept, sinon les deux se comptent separement.
-		if (option.isNonResponse) return { ok: true, values: [nonResponseValue()] };
 		return {
 			ok: true,
 			values: [

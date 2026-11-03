@@ -114,27 +114,22 @@ describe('single_choice', () => {
 		expect(result.reason).toMatch(/inconnue/i);
 	});
 
-	it('ramene une option « ne se prononce pas » a la non-reponse', () => {
-		// Deux cles pour un seul concept les compterait separement, et la
-		// non-reponse paraitrait deux fois plus faible qu elle ne l est.
+	it('garde « ne se prononce pas » comme une reponse a part entiere', () => {
+		// C est une reponse donnee : la fondre dans la question laissee vide la
+		// faisait disparaitre des qu on retirait les non-reponses.
 		const result = type.normalize('nsp', context(PRIORITIES));
 
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
-		expect(result.values[0]?.modalityKey).toBe(NON_RESPONSE_KEY);
+		expect(result.values[0]?.modalityKey).toBe('nsp');
 	});
 
-	it('n expose pas l option de non-reponse deux fois dans les modalites', () => {
+	it('expose « ne se prononce pas » a cote de la vraie non-reponse', () => {
 		const modalities = type.modalities(context(PRIORITIES));
 		const keys = modalities.map((modality) => modality.key);
 
-		expect(keys).toEqual(['pouvoir_achat', 'sante', 'ecologie', NON_RESPONSE_KEY]);
-	});
-
-	it('reprend le libelle declare pour la non-reponse', () => {
-		const modalities = type.modalities(context(PRIORITIES));
-
-		expect(modalities.at(-1)?.label).toBe('Ne se prononce pas');
+		expect(keys).toEqual(['pouvoir_achat', 'sante', 'ecologie', 'nsp', NON_RESPONSE_KEY]);
+		expect(modalities.at(-1)?.label).toBe('Sans réponse');
 	});
 });
 
@@ -165,12 +160,12 @@ describe('multiple_choice', () => {
 		expect(result.values).toHaveLength(1);
 	});
 
-	it('traite « seulement sans opinion » comme une non-reponse', () => {
+	it('compte « sans opinion » coche seul comme une reponse', () => {
 		const result = type.normalize('nsp', context(PRIORITIES));
 
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
-		expect(result.values[0]?.modalityKey).toBe(NON_RESPONSE_KEY);
+		expect(result.values[0]?.modalityKey).toBe('nsp');
 	});
 
 	it('refuse plus de reponses que la limite declaree', () => {

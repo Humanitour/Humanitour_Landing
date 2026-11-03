@@ -128,15 +128,20 @@ export function nonResponseValue(): NormalizedValue {
 	};
 }
 
-/** Le descripteur de modalite de la non-reponse, place en fin de liste. */
-export function nonResponseModality(options: readonly QuestionOptionLike[]): ModalityDescriptor {
-	const declared = options.find((option) => option.isNonResponse);
-
+/**
+ * Le descripteur de modalite de la non-reponse, place en fin de liste.
+ *
+ * Elle ne designe QUE la question laissee vide. « Je ne sais pas » ou « sans
+ * opinion » sont des reponses donnees, et restent des modalites ordinaires
+ * (`declaredModalities`) : les fondre ici les faisait disparaitre des
+ * resultats des qu on retirait les non-reponses.
+ */
+export function nonResponseModality(_options: readonly QuestionOptionLike[]): ModalityDescriptor {
 	return {
 		key: NON_RESPONSE_KEY,
-		label: declared?.label ?? NON_RESPONSE_LABEL,
+		label: NON_RESPONSE_LABEL,
 		isNonResponse: true,
-		color: declared?.color ?? null
+		color: null
 	};
 }
 
@@ -178,12 +183,11 @@ export function findOption(
 	return loose.length === 1 ? loose[0]! : null;
 }
 
-/** Modalites issues des options declarees, hors non-reponse, triees par position. */
+/** Modalites issues des options declarees, « Je ne sais pas » compris, triees par position. */
 export function declaredModalities(
 	options: readonly QuestionOptionLike[]
 ): readonly ModalityDescriptor[] {
 	return options
-		.filter((option) => !option.isNonResponse)
 		.slice()
 		.sort((a, b) => a.position - b.position)
 		.map((option) => ({
