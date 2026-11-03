@@ -14,12 +14,13 @@ import type { RequestHandler } from './$types';
  * donc l adresse d un croisement se transforme en fichier en changeant un seul
  * segment.
  */
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
 	const survey = await getPublishedSurvey(params.slug);
 	if (!survey) error(404, { message: "Cette enquete n'existe pas ou n'est pas publiee." });
 
 	const requested = parseExploreParams(url.searchParams);
-	const prepared = await prepareExplore(survey, requested);
+	const unmasked = locals.user !== null;
+	const prepared = await prepareExplore(survey, requested, { unmasked });
 	if (!prepared) error(500, { message: 'Cette enquete ne comporte aucune question exploitable.' });
 
 	const inputs = {
@@ -49,7 +50,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		headers: {
 			'Content-Type': 'text/csv; charset=utf-8',
 			'Content-Disposition': `attachment; filename="${filename}"`,
-			'Cache-Control': 'public, max-age=300'
+			// Les chiffres non masques de l equipe ne doivent pas atterrir dans un
+			// cache partage, ou un visiteur les recevrait.
+			'Cache-Control': unmasked ? 'private, no-store' : 'public, max-age=300'
 		}
 	});
 };

@@ -298,10 +298,15 @@ export interface PreparedExplore {
  *
  * Rend `null` quand l enquete n a aucune question croisable, ce que l appelant
  * traduit dans son propre vocabulaire (page d erreur ou reponse JSON).
+ *
+ * `unmasked` : lecture de l equipe connectee au back-office, qui travaille sur
+ * les chiffres complets pour son rapport. Un seuil a 1 ne masque plus rien. Le
+ * visiteur anonyme et l API publique gardent le seuil configure.
  */
 export async function prepareExplore(
 	survey: PublicSurvey,
-	params: ExploreParams
+	params: ExploreParams,
+	options: { readonly unmasked?: boolean } = {}
 ): Promise<PreparedExplore | null> {
 	const {
 		x: xQuestion,
@@ -311,7 +316,7 @@ export async function prepareExplore(
 	if (!xQuestion) return null;
 
 	const [threshold, populated, x, y, z, weighting] = await Promise.all([
-		resolveThreshold(survey),
+		options.unmasked ? 1 : resolveThreshold(survey),
 		resolvePopulation(survey, params.filters),
 		loadAxis(xQuestion),
 		yQuestion ? loadAxis(yQuestion) : null,

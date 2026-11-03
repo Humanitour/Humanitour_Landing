@@ -49,12 +49,12 @@ import type { PageServerLoad } from './$types';
  * `/api/public/sondages/[slug]/resultat`. La page et l API ne peuvent donc pas
  * publier deux chiffres differents pour la meme question.
  */
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const survey = await getPublishedSurvey(params.slug);
 	if (!survey) error(404, { message: "Cette enquete n'existe pas ou n'est pas publiee." });
 
 	const requested = parseExploreParams(url.searchParams);
-	const prepared = await prepareExplore(survey, requested);
+	const prepared = await prepareExplore(survey, requested, { unmasked: locals.user !== null });
 	if (!prepared) error(500, { message: 'Cette enquete ne comporte aucune question exploitable.' });
 
 	const { selection, timelineMode, chart } = resolveView(requested.chart, prepared);
