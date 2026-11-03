@@ -197,3 +197,16 @@ export function declaredModalities(
 			color: option.color ?? null
 		}));
 }
+
+/** Premier nombre d un libelle, `NaN` s il n en porte pas. */
+export function leadingNumber(label: string): number {
+	return Number.parseFloat(/\d+(?:[.,]\d+)?/.exec(label)?.[0]?.replace(',', '.') ?? '');
+}
+
+/** Toutes les modalites portent un nombre : ce sont des tranches, qui ont un ordre. */
+export function hasNumericLabels(modalities: readonly { readonly label: string }[]): boolean {
+	return (
+		modalities.length > 1 &&
+		modalities.every((modality) => Number.isFinite(leadingNumber(modality.label)))
+	);
+}

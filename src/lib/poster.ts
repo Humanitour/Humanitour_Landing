@@ -57,8 +57,8 @@ export const POSTER_QUALITIES: Record<
 	PosterQuality,
 	{ readonly label: string; readonly scale: number; readonly pixelRatio: number }
 > = {
-	ecran: { label: 'Écran', scale: 1, pixelRatio: 2 },
-	impression: { label: 'Impression', scale: 2, pixelRatio: 3 }
+	ecran: { label: 'Écran', scale: 2, pixelRatio: 3 },
+	impression: { label: 'Impression', scale: 3, pixelRatio: 4 }
 };
 
 export interface PosterContent {

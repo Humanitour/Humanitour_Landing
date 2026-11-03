@@ -1,4 +1,9 @@
-import { NON_RESPONSE_KEY, type ModalityDescriptor } from '$lib/shared/questions';
+import {
+	hasNumericLabels,
+	leadingNumber,
+	NON_RESPONSE_KEY,
+	type ModalityDescriptor
+} from '$lib/shared/questions';
 import { protectDistribution, protectTable, type ProtectedTable } from './anonymity';
 
 /**
@@ -91,8 +96,13 @@ export function orderModalities(
 		.sort(compareModalityKeys)
 		.map((key) => ({ key, label: key, isNonResponse: false, color: null }));
 
-	const regular = declared.filter((modality) => !modality.isNonResponse);
+	const declaredRegular = declared.filter((modality) => !modality.isNonResponse);
 	const nonResponse = declared.filter((modality) => modality.isNonResponse);
+	// Des tranches (« 18 – 24 », « 65 + ») se lisent dans l ordre des nombres,
+	// quel que soit l ordre dans lequel le questionnaire les a declarees.
+	const regular = hasNumericLabels(declaredRegular)
+		? [...declaredRegular].sort((a, b) => leadingNumber(a.label) - leadingNumber(b.label))
+		: declaredRegular;
 
 	return [...regular, ...extra, ...nonResponse];
 }

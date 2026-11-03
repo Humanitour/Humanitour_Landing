@@ -2,6 +2,7 @@
 	import type { CrosstabResult } from '$lib/server/survey/aggregate';
 	import { formatCount } from '$lib/shared/format';
 	import { maxCellValue, readCell, type CellBasis } from './crosstab-cell';
+	import { rankedColumns } from './echarts/options';
 	import { sequentialStep } from './palette';
 
 	interface Props {
@@ -10,9 +11,13 @@
 		yLabel: string;
 		/** Lecture des cases : en ligne, en colonne, sur le total, ou en effectifs. */
 		basis: CellBasis;
+		/** Le meme croisement en brut, quand `data` est redresse : chaque case montre les deux. */
+		raw?: CrosstabResult | null;
 	}
 
-	let { data, xLabel, yLabel, basis }: Props = $props();
+	let { data, xLabel, yLabel, basis, raw = null }: Props = $props();
+
+	const columns = $derived(rankedColumns(data));
 
 	/**
 	 * Echelle de l intensite, calculee sur les seules cases publiees.
@@ -58,7 +63,7 @@
 		<thead>
 			<tr class="border-ink border-b">
 				<th scope="col" class="py-2 pr-4 text-left font-semibold">{xLabel}</th>
-				{#each data.yModalities as modality (modality.key)}
+				{#each columns as modality (modality.key)}
 					<th scope="col" class="px-3 py-2 text-right font-semibold whitespace-nowrap">
 						{modality.label}
 					</th>
@@ -70,7 +75,7 @@
 			{#each data.xModalities as xModality (xModality.key)}
 				<tr class="border-ink border-b last:border-0">
 					<th scope="row" class="py-2.5 pr-4 text-left font-medium">{xModality.label}</th>
-					{#each data.yModalities as yModality (yModality.key)}
+					{#each columns as yModality (yModality.key)}
 						{@const reading = readCell(data, xModality.key, yModality.key, basis)}
 						<td
 							class="tabular px-3 py-2.5 text-right"
@@ -82,6 +87,11 @@
 								</span>
 							{:else}
 								<span class="font-semibold">{reading.text}</span>
+								{#if raw}
+									<span class="text-muted block text-xs">
+										brut {readCell(raw, xModality.key, yModality.key, basis).text}
+									</span>
+								{/if}
 							{/if}
 						</td>
 					{/each}

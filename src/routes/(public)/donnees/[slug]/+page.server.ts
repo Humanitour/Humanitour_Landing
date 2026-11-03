@@ -1,14 +1,8 @@
 import { error } from '@sveltejs/kit';
-import {
-	buildChart,
-	chartsForSelection,
-	colorSlots,
-	resolveChart,
-	wantsTimeline
-} from '$charts';
+import { buildChart, chartsForSelection, colorSlots, resolveChart, wantsTimeline } from '$charts';
 import { exploreSearch, parseExploreParams } from '$shared/explore';
 import { codeExamples, longCitation, shortCitation } from '$shared/citation';
-import { getQuestionType } from '$shared/questions';
+import { getQuestionType, hasNumericLabels } from '$shared/questions';
 import { formatFieldwork } from '$shared/format';
 import {
 	baseOf,
@@ -66,10 +60,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	// Bretons, X % citent… ». Les trois autres sont a un clic.
 	const basis = requested.basis ?? 'ligne';
 
-	const sort = resolveSort(
-		requested.sort,
-		getQuestionType(prepared.xQuestion.type)?.ordered ?? false
-	);
+	const sort = resolveSort(requested.sort, isOrdered(prepared));
 
 	const inputs = {
 		x: prepared.x,
@@ -81,6 +72,10 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	};
 
 	const outcome = sortOutcome(buildOutcome(inputs), sort);
+	// En lecture redressee, le brut est servi A COTE : les tableaux montrent les
+	// deux chiffres, pour qu on ne cite jamais l un en le prenant pour l autre.
+	const rawOutcome =
+		prepared.weights && sortOutcome(buildOutcome({ ...inputs, weights: null }), sort);
 
 	/*
 	 * Le decoupage en petits multiples.
@@ -150,6 +145,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			restricted: prepared.population.restricted
 		},
 		outcome,
+		rawOutcome,
 		timeline,
 		panels,
 		// Un constat porte sur UN resultat. Decoupe en panneaux, la page en
@@ -158,7 +154,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		appliedSort: sort,
 		appliedBasis: basis,
 		droppedMessage: describeDropped(prepared.dropped),
-		notAsked: requested.includeNonResponses ? [] : describeNotAsked(prepared),
+		notAsked: describeNotAsked(prepared, requested.includeNonResponses),
 		reading: describeReading(prepared, filterable),
 		// Les croisements que l equipe met en avant : des permaliens, pas des
 		// chiffres. Celui qu on ouvre est calcule par l explorateur, comme les autres.
@@ -172,14 +168,24 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
  * posee, axe par axe. Un nombre sous le seuil n est pas publie : sur une
  * population filtree, il designerait quelqu un.
  */
-function describeNotAsked(prepared: Awaited<ReturnType<typeof prepareExplore>> & object) {
+function describeNotAsked(
+	prepared: Awaited<ReturnType<typeof prepareExplore>> & object,
+	counted: boolean
+) {
 	const size = prepared.population.size;
+	if (counted) return [];
 
 	return [prepared.x, prepared.y]
 		.filter((axis): axis is Axis => axis !== null)
 		.map((axis) => ({ label: axis.label, count: notAskedCount(axis, prepared.population) }))
 		.filter(({ count }) => count > 0 && count >= prepared.threshold && size > 0)
 		.map(({ label, count }) => ({ label, count, share: count / size }));
+}
+
+/** Une echelle, ou des tranches (ages), gardent leur ordre au lieu d etre classees par effectif. */
+function isOrdered(prepared: Awaited<ReturnType<typeof prepareExplore>> & object): boolean {
+	if (getQuestionType(prepared.xQuestion.type)?.ordered) return true;
+	return hasNumericLabels(prepared.x.modalities.filter((modality) => !modality.isNonResponse));
 }
 
 /** La lecture servie, brute ou redressee, et de quoi proposer l autre. */

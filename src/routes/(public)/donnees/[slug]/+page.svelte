@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { colorFor, getChart } from '$charts';
+	import { rankedColumns } from '$charts/echarts/options';
 	import EChart from '$components/explorer/EChart.svelte';
 	import ResultHeadline from '$components/explorer/ResultHeadline.svelte';
 	import ResultTable from '$components/explorer/ResultTable.svelte';
@@ -207,17 +208,14 @@
 		if (data.panels || data.outcome.kind !== 'crosstab' || !data.chartIsTabular) return null;
 
 		const table = data.outcome.crosstab;
+		const columns = rankedColumns(table);
 
 		return {
-			columns: [
-				data.selection.xLabel,
-				...table.yModalities.map((modality) => modality.label),
-				'Total'
-			],
+			columns: [data.selection.xLabel, ...columns.map((modality) => modality.label), 'Total'],
 			rows: table.xModalities.map((xModality) => ({
 				header: xModality.label,
 				cells: [
-					...table.yModalities.map((yModality) => {
+					...columns.map((yModality) => {
 						return readCell(table, xModality.key, yModality.key, data.appliedBasis).text;
 					}),
 					formatCount(table.rowTotals.get(xModality.key) ?? null)
@@ -239,7 +237,12 @@
 				surveyTitle: data.survey.title,
 				question: data.selection.xLabel,
 				crossedWith: data.selection.yLabel,
-				base: data.population.size === null ? '' : formatBase(data.population.size),
+				base: [
+					data.population.size === null ? '' : formatBase(data.population.size),
+					data.reading.weighted ? 'Données redressées' : 'Données brutes'
+				]
+					.filter(Boolean)
+					.join(' · '),
 				fieldwork: formatFieldwork(data.survey.fieldworkStart, data.survey.fieldworkEnd),
 				licence: LICENSES.data.name,
 				url: data.share.pageUrl,
@@ -411,6 +414,15 @@
 					aria-label="Réglages de l'explorateur"
 				>
 					<div class="flex flex-col gap-5 p-5">
+						<!-- L etat vit dans l adresse : recharger la page le garde, ce lien
+						     revient a l explorateur vierge. -->
+						<a
+							href="/donnees/{data.survey.slug}"
+							data-sveltekit-noscroll
+							class="text-coral-ink self-start text-sm font-semibold underline underline-offset-2"
+						>
+							Réinitialiser
+						</a>
 						{#if data.reading.available}
 							<!--
 								La bascule brut / redresse. Le brut vient en premier et reste
@@ -644,8 +656,8 @@
 					{/if}
 					{#each data.notAsked as notAsked (notAsked.label)}
 						<p class="text-ink-soft mb-4 text-sm leading-relaxed" role="note">
-							{formatCount(notAsked.count)} sondés ({formatShare(notAsked.share)}) n'ont pas été interrogés
-							sur la question « {notAsked.label} » : ils ne sont pas comptés dans les pourcentages.
+							{formatCount(notAsked.count)} sondés ({formatShare(notAsked.share)}) n'ont pas été
+							interrogés sur la question « {notAsked.label} » : ils ne sont pas comptés dans les pourcentages.
 						</p>
 					{/each}
 
@@ -708,9 +720,11 @@
 											version {data.reading.weighting.version} sur {data.reading.weighting.variables
 												.map((variable) => variable.label.toLowerCase())
 												.join(', ')}) : effectifs pondérés, arrondis à l'unité. Les bases citées
-											restent le nombre réel de répondants.
+											restent le nombre réel de répondants. Les tableaux donnent aussi le chiffre
+											brut.
 										{:else}
-											Effectifs bruts, sans pondération ni redressement.
+											<strong class="text-ink font-semibold">Données brutes</strong> : effectifs sans
+											pondération ni redressement.
 										{/if}
 									</p>
 								</div>
@@ -855,6 +869,7 @@
 											xLabel={data.selection.xLabel}
 											yLabel={data.selection.yLabel}
 											basis={data.appliedBasis}
+											raw={data.rawOutcome?.kind === 'crosstab' ? data.rawOutcome.crosstab : null}
 										/>
 									{/if}
 								</div>
@@ -886,6 +901,9 @@
 											<ResultTable
 												data={data.outcome.distribution}
 												question={data.selection.xLabel}
+												raw={data.rawOutcome?.kind === 'distribution'
+													? data.rawOutcome.distribution
+													: null}
 											/>
 										</div>
 									</details>

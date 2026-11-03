@@ -175,11 +175,7 @@ describe('toJson', () => {
 	});
 
 	it('supporte un sondage sans periode de terrain declaree', () => {
-		const output = toJson(
-			{ ...survey, fieldworkStart: null, fieldworkEnd: null },
-			[],
-			[PRIORITE]
-		);
+		const output = toJson({ ...survey, fieldworkStart: null, fieldworkEnd: null }, [], [PRIORITE]);
 
 		expect(output.survey.fieldworkStart).toBeNull();
 	});
@@ -197,13 +193,26 @@ describe('exportableQuestions, type inconnu', () => {
 
 describe('weightsCsv', () => {
 	const units = [
-		{ id: 'r1', modalities: new Map([['sexe', 'f'], ['age', 'a18']]) },
+		{
+			id: 'r1',
+			modalities: new Map([
+				['sexe', 'f'],
+				['age', 'a18']
+			])
+		},
 		{ id: 'r2', modalities: new Map([['sexe', 'h']]) },
 		{ id: 'r3', modalities: new Map<string, string>() }
 	];
 
 	it('ecrit une ligne par repondant, codes de modalite et poids a six decimales', () => {
-		const csv = weightsCsv(units, new Map([['r1', 1.23456789], ['r2', 0.5]]), ['sexe', 'age']);
+		const csv = weightsCsv(
+			units,
+			new Map([
+				['r1', 1.23456789],
+				['r2', 0.5]
+			]),
+			['sexe', 'age']
+		);
 
 		expect(csv.startsWith('﻿')).toBe(true);
 		expect(csv.slice(1).split('\r\n')).toEqual([

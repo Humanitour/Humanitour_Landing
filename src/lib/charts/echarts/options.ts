@@ -1,4 +1,5 @@
 import type { CrosstabResult, DistributionResult } from '$lib/server/survey/aggregate';
+import { hasNumericLabels } from '$shared/questions';
 import type { TimelineResult, TimelineSeries } from '$lib/server/survey/timeline';
 import { formatCount, formatShare, formatWeek, SUPPRESSED_LABEL } from '$shared/format';
 import { maxCellValue, readCell, type CellBasis } from '../crosstab-cell';
@@ -125,7 +126,12 @@ export function barsOption(result: DistributionResult, context: ChartContext): B
 
 /** Repartition en parts d un tout. Le centre porte la base, pas un logo. */
 export function donutOption(result: DistributionResult, context: ChartContext): BuiltChart {
-	const slices = result.bars.filter((bar) => !bar.suppressed);
+	// Les parts nulles passent apres les autres : intercalees, leurs etiquettes
+	// « 0 % » s empilaient entre les vraies parts. Le tri est stable, l ordre
+	// decide en amont tient pour le reste.
+	const slices = result.bars
+		.filter((bar) => !bar.suppressed)
+		.sort((a, b) => Number((a.share ?? 0) === 0) - Number((b.share ?? 0) === 0));
 
 	return {
 		height: 320,
@@ -174,6 +180,23 @@ export function shownColumns(table: CrosstabResult): CrosstabResult['yModalities
 	return table.yModalities.filter((modality) => table.columnTotals.get(modality.key) !== 0);
 }
 
+/**
+ * Les colonnes d un tableau croise ou d une carte de chaleur, de la plus
+ * importante a la moins importante, sans les colonnes vides.
+ *
+ * Une colonne a zero ne remplissait la grille que de zeros. Des tranches
+ * (ages, notes) gardent leur ordre : les classer par effectif casserait l axe.
+ */
+export function rankedColumns(table: CrosstabResult): CrosstabResult['yModalities'] {
+	const columns = shownColumns(table);
+	if (hasNumericLabels(columns.filter((modality) => !modality.isNonResponse))) return columns;
+
+	const total = (key: string) => table.columnTotals.get(key) ?? -1;
+	return [...columns].sort(
+		(a, b) => Number(a.isNonResponse) - Number(b.isNonResponse) || total(b.key) - total(a.key)
+	);
+}
+
 /** Les modalites croisees, dans l ordre ou elles doivent garder leur couleur. */
 function crossSeries(
 	table: CrosstabResult,
@@ -190,15 +213,43 @@ function crossSeries(
 		itemStyle: {
 			color: colorOf(context, yModality)
 		},
-		data: rows.map((xModality) => crossCell(table, xModality, yModality))
+		data: rows.map((xModality) => crossCell(table, xModality, yModality, stacked))
 	}));
+}
+
+/**
+ * Libelle d une ligne, avec son effectif.
+ *
+ * Une barre a 36 % peut ne reposer que sur sept personnes : sans la base sous
+ * les yeux, on lit une hauteur comme un poids.
+ */
+function rowLabel(table: CrosstabResult, modality: { key: string; label: string }): string {
+	const total = table.rowTotals.get(modality.key);
+	return total === null || total === undefined
+		? modality.label
+		: `${modality.label} (${formatCount(total)})`;
+}
+
+/** Part en dessous de laquelle une etiquette ne tient plus dans son segment. */
+const STACK_LABEL_MIN = 6;
+
+/** Empile, la part est ecrite dans son segment quand elle y tient. */
+function stackLabel(value: number, share: number | null): ChartOption {
+	return {
+		show: value >= STACK_LABEL_MIN,
+		position: 'inside',
+		formatter: formatShare(share),
+		color: '#ffffff',
+		fontSize: 11
+	};
 }
 
 /** Une case du croisement, avec son infobulle deja redigee. */
 function crossCell(
 	table: CrosstabResult,
 	xModality: { key: string; label: string },
-	yModality: { key: string; label: string }
+	yModality: { key: string; label: string },
+	stacked: boolean
 ): ChartOption {
 	const cell = table.cells.get(xModality.key)?.get(yModality.key);
 
@@ -210,10 +261,14 @@ function crossCell(
 		};
 	}
 
+	const share = cell?.share ?? null;
+	const value = percent(share);
+
 	return {
-		value: percent(cell?.share ?? null),
+		value,
+		label: stacked ? stackLabel(value, share) : undefined,
 		tooltip: {
-			formatter: `${xModality.label}<br/>${yModality.label} : <b>${formatShare(cell?.share ?? null)}</b> (${formatCount(cell?.count ?? null)})`
+			formatter: `${xModality.label}<br/>${yModality.label} : <b>${formatShare(share)}</b> (${formatCount(cell?.count ?? null)})`
 		}
 	};
 }
@@ -311,7 +366,9 @@ export function stackedOption(table: CrosstabResult, context: ChartContext): Bui
 			media: key.media,
 			grid: { left: 8, right: 16, top: key.gridTop, bottom: 8, containLabel: true },
 			xAxis: valueAxis({ max: 100, percent: true }),
-			yAxis: categoryAxis([...table.xModalities].reverse().map((modality) => modality.label)),
+			yAxis: categoryAxis(
+				[...table.xModalities].reverse().map((modality) => rowLabel(table, modality))
+			),
 			series: crossSeries(table, context, true)
 		}
 	};
@@ -341,8 +398,7 @@ export function groupedOption(table: CrosstabResult, context: ChartContext): Bui
 	 * une seule modalite s etalait sur le quart de l ecran. On fixe donc la
 	 * hauteur de ligne et on amincit les barres pour qu elles y tiennent.
 	 */
-	const ROW_HEIGHT = 46;
-	const barWidth = Math.max(4, Math.floor(30 / series));
+	const ROW_HEIGHT = Math.max(46, 14 + series * 10);
 
 	return {
 		height: Math.max(220, 44 + rows * ROW_HEIGHT) + key.space,
@@ -352,12 +408,17 @@ export function groupedOption(table: CrosstabResult, context: ChartContext): Bui
 			media: key.media,
 			grid: { left: 8, right: 48, top: key.gridTop, bottom: 8, containLabel: true },
 			xAxis: valueAxis({ percent: true }),
-			yAxis: categoryAxis([...table.xModalities].reverse().map((modality) => modality.label)),
+			yAxis: categoryAxis(
+				[...table.xModalities].reverse().map((modality) => rowLabel(table, modality))
+			),
+			// Largeur laissee a ECharts : une largeur fixe debordait du groupe des
+			// qu il y avait beaucoup de series, et les barres se decalaient d une
+			// ligne sur l autre.
 			series: crossSeries(table, context, false).map((serie) => ({
 				...serie,
-				barWidth,
-				barGap: '20%',
-				barCategoryGap: '35%'
+				barMaxWidth: 12,
+				barGap: '15%',
+				barCategoryGap: '20%'
 			}))
 		}
 	};
@@ -372,7 +433,7 @@ export function groupedOption(table: CrosstabResult, context: ChartContext): Bui
  */
 export function heatmapOption(table: CrosstabResult, context: ChartContext): BuiltChart {
 	const rows = [...table.xModalities].reverse();
-	const columns = shownColumns(table);
+	const columns = rankedColumns(table);
 	const max = maxCellValue(table, context.basis);
 
 	const data = rows.flatMap((xModality, rowIndex) =>
@@ -399,7 +460,7 @@ export function heatmapOption(table: CrosstabResult, context: ChartContext): Bui
 				...categoryAxis(columns.map((modality) => modality.label)),
 				position: 'top'
 			},
-			yAxis: categoryAxis(rows.map((modality) => modality.label)),
+			yAxis: categoryAxis(rows.map((modality) => rowLabel(table, modality))),
 			// `max` a zero signifie que TOUT est masque : une echelle a zero
 			// laisserait ECharts peindre toutes les cases de la teinte la plus
 			// forte, ce qui suggererait une intensite qu on ne publie pas.

@@ -165,7 +165,7 @@ export interface JsonExport {
 
 export const EXPORT_NOTICE =
 	'Effectifs bruts, sans pondération ni redressement. Les non-réponses sont comptées comme une modalité. ' +
-	"Les valeurs numériques sont regroupées en tranches et les verbatims sont exclus, pour empêcher la réidentification.";
+	'Les valeurs numériques sont regroupées en tranches et les verbatims sont exclus, pour empêcher la réidentification.';
 
 export const WEIGHT_NOTICE =
 	'La colonne « poids » donne le poids de redressement de chaque répondant (calage sur marges, publié sur la page de l’enquête). ' +

@@ -17,9 +17,13 @@
 		data: DistributionResult;
 		/** Libelle exact de la question, qui sert de titre au tableau. */
 		question: string;
+		/** Le meme resultat en brut, quand `data` est redresse : les deux colonnes s affichent. */
+		raw?: DistributionResult | null;
 	}
 
-	let { data, question }: Props = $props();
+	let { data, question, raw = null }: Props = $props();
+
+	const rawByKey = $derived(new Map((raw?.bars ?? []).map((bar) => [bar.key, bar])));
 </script>
 
 <table class="w-full border-collapse text-sm">
@@ -29,7 +33,10 @@
 			<th scope="col" class="py-2 pr-3 text-left font-semibold">Rang</th>
 			<th scope="col" class="py-2 pr-3 text-left font-semibold">Modalité</th>
 			<th scope="col" class="py-2 pr-3 text-right font-semibold">Effectif</th>
-			<th scope="col" class="py-2 text-right font-semibold">Part</th>
+			<th scope="col" class="py-2 text-right font-semibold">{raw ? 'Part redressée' : 'Part'}</th>
+			{#if raw}
+				<th scope="col" class="py-2 pl-3 text-right font-semibold">Part brute</th>
+			{/if}
 		</tr>
 	</thead>
 	<tbody>
@@ -47,6 +54,12 @@
 				<td class="tabular py-2 text-right font-semibold">
 					{bar.suppressed ? '' : formatShare(bar.share)}
 				</td>
+				{#if raw}
+					{@const rawBar = rawByKey.get(bar.key)}
+					<td class="tabular text-muted py-2 pl-3 text-right">
+						{rawBar && !rawBar.suppressed ? formatShare(rawBar.share) : ''}
+					</td>
+				{/if}
 			</tr>
 		{/each}
 	</tbody>
