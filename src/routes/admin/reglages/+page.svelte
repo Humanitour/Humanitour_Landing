@@ -30,7 +30,7 @@
 				<input
 					type="number"
 					name="threshold"
-					min="2"
+					min="1"
 					required
 					value={data.threshold}
 					class="border-ink/20 bg-paper w-32 rounded-field border px-3 py-2 min-h-11"
