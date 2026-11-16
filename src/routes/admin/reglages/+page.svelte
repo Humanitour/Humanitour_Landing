@@ -25,7 +25,8 @@
 				<span class="text-sm font-semibold">Nombre minimal de répondants</span>
 				<span class="text-muted text-xs">
 					Défaut : {data.defaultThreshold}, la norme de diffusion des données locales. Le baisser
-					augmente le risque qu'un croisement fin permette de reconnaître quelqu'un.
+					augmente le risque qu'un croisement fin permette de reconnaître quelqu'un. Avec 1, aucun
+					effectif n'est masqué.
 				</span>
 				<input
 					type="number"
