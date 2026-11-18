@@ -249,12 +249,24 @@ describe('pickThreshold', () => {
 		expect(pickThreshold(null, undefined)).toBe(DEFAULT_K_THRESHOLD);
 	});
 
-	it('rejette un reglage qui desactiverait la protection', () => {
-		// Un seuil a zero ou negatif publierait toutes les cases : on prefere le
-		// defaut a une protection silencieusement levee.
-		expect(pickThreshold(null, 0)).toBe(DEFAULT_K_THRESHOLD);
+	it('accepte zero, qui leve le masquage, et rejette un negatif', () => {
+		expect(pickThreshold(null, 0)).toBe(0);
+		expect(pickThreshold(0, 7)).toBe(0);
 		expect(pickThreshold(null, -3)).toBe(DEFAULT_K_THRESHOLD);
-		expect(pickThreshold(0, 7)).toBe(7);
+	});
+
+	it('ne masque aucune case a un seuil de zero', () => {
+		const table = protectTable(
+			[
+				{ xKey: 'r1', yKey: 'a', count: 1 },
+				{ xKey: 'r1', yKey: 'b', count: 100 }
+			],
+			['r1'],
+			['a', 'b'],
+			0
+		);
+
+		expect(table.suppressedCount).toBe(0);
 	});
 
 	it('rejette un reglage qui n est pas un entier', () => {

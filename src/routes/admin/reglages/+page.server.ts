@@ -28,13 +28,13 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 
-		// Un seuil de 1 ne masque plus rien : voulu, les tableaux ne sont plus
+		// Un seuil de 0 ne masque plus rien : voulu, les tableaux ne sont plus
 		// proteges. L'audit ci-dessous garde la trace de la decision.
-		const threshold = readOptionalInt(form, 'threshold', 1);
+		const threshold = readOptionalInt(form, 'threshold', 0);
 
 		if (!threshold.ok || threshold.value === null) {
 			return fail(400, {
-				message: 'Le seuil doit etre un entier superieur ou egal a 1 (1 = rien n est masque).'
+				message: 'Le seuil doit etre un entier superieur ou egal a 0 (0 = rien n est masque).'
 			});
 		}
 

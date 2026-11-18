@@ -24,8 +24,8 @@ export const DEFAULT_K_THRESHOLD = 5;
  *
  * Fonction pure, separee de sa lecture en base : c est la regle qui compte, et
  * elle doit etre verifiable sans PostgreSQL. Une valeur de reglage absurde
- * (texte, zero, nombre a virgule) retombe sur le defaut plutot que de desactiver
- * silencieusement la protection — un seuil a zero publierait tout.
+ * (texte, negatif, nombre a virgule) retombe sur le defaut. Zero est accepte :
+ * c'est un choix explicite du back-office, qui publie alors tous les effectifs.
  */
 export function pickThreshold(surveyOverride: number | null, settingValue: unknown): number {
 	if (isUsableThreshold(surveyOverride)) return surveyOverride;
@@ -34,7 +34,8 @@ export function pickThreshold(surveyOverride: number | null, settingValue: unkno
 }
 
 function isUsableThreshold(value: unknown): value is number {
-	return typeof value === 'number' && Number.isInteger(value) && value > 0;
+	// 0 est voulu : il leve le masquage (decision tracee a l'audit au reglage).
+	return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
 export interface CountedCell {

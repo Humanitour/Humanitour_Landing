@@ -79,10 +79,9 @@ export const actions: Actions = {
 		const title = readText(form, 'title');
 		if (title.length < 3) return fail(400, { message: 'Le titre est obligatoire.' });
 
-		const threshold = readOptionalInt(form, 'kAnonymityThreshold');
+		// 0 est accepte : il publie toutes les cases de cette enquete.
+		const threshold = readOptionalInt(form, 'kAnonymityThreshold', 0);
 
-		// Un seuil a zero publierait toutes les cases : on refuse plutot que de
-		// laisser lever la protection par une faute de frappe.
 		if (!threshold.ok) return fail(400, { message: `Seuil d anonymat : ${threshold.reason}` });
 
 		await prisma.survey.update({

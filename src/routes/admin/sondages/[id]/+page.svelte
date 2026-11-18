@@ -298,7 +298,7 @@
 					<input
 						type="number"
 						name="kAnonymityThreshold"
-						min="1"
+						min="0"
 						value={data.survey.kAnonymityThreshold ?? ''}
 						disabled={!editable}
 						class="border-ink/20 bg-paper w-32 rounded-field border px-3 py-2 min-h-11"
