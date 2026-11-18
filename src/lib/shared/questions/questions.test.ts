@@ -129,7 +129,7 @@ describe('single_choice', () => {
 		const keys = modalities.map((modality) => modality.key);
 
 		expect(keys).toEqual(['pouvoir_achat', 'sante', 'ecologie', 'nsp', NON_RESPONSE_KEY]);
-		expect(modalities.at(-1)?.label).toBe('Sans réponse');
+		expect(modalities.at(-1)?.label).toBe('Je ne sais pas');
 	});
 });
 

@@ -19,7 +19,7 @@ import { toColumnKey } from '../slug';
 export const NON_RESPONSE_KEY = '__non_response__';
 
 /** Libelle par defaut de la non-reponse, surchargeable par une option declaree. */
-export const NON_RESPONSE_LABEL = 'Sans réponse';
+export const NON_RESPONSE_LABEL = 'Je ne sais pas';
 
 export interface QuestionOptionLike {
 	readonly code: string;

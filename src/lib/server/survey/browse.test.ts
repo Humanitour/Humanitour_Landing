@@ -81,7 +81,7 @@ describe('responseCells', () => {
 		);
 
 		expect(declared).toEqual({ text: 'Ne se prononce pas', isNonResponse: true, missing: false });
-		expect(implicit).toEqual({ text: 'Sans réponse', isNonResponse: true, missing: false });
+		expect(implicit).toEqual({ text: 'Je ne sais pas', isNonResponse: true, missing: false });
 	});
 
 	it('distingue une question jamais vue d une non-reponse', () => {
@@ -132,7 +132,7 @@ describe('tallyQuestion', () => {
 		const withIt = tallyQuestion(medias, [{ responseId: 'r1', modalityKey: NON_RESPONSE_KEY }], 1);
 		expect(withIt.rows.at(-1)).toMatchObject({
 			key: NON_RESPONSE_KEY,
-			label: 'Sans réponse',
+			label: 'Je ne sais pas',
 			isNonResponse: true,
 			count: 1
 		});
@@ -184,7 +184,7 @@ describe('readFilter', () => {
 
 	it('accepte une modalite non declaree, et nomme la non-reponse', () => {
 		expect(readFilter([age], 'age', '18-27')?.modalityLabel).toBe('18-27');
-		expect(readFilter([medias], 'medias', NON_RESPONSE_KEY)?.modalityLabel).toBe('Sans réponse');
+		expect(readFilter([medias], 'medias', NON_RESPONSE_KEY)?.modalityLabel).toBe('Je ne sais pas');
 	});
 
 	it('annule le filtre incomplet ou sur une question inconnue', () => {
