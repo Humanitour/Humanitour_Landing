@@ -528,7 +528,7 @@
 								checked={data.selection.includeNonResponses}
 								class="accent-coral h-5 w-5 shrink-0"
 							/>
-							<span>Compter les non-interrogés</span>
+							<span>Compter les « je ne sais pas »</span>
 						</label>
 						{#if data.groupable}
 							<label class="flex min-h-11 items-center gap-3">
@@ -670,8 +670,8 @@
 					{/if}
 					{#each data.notAsked as notAsked (notAsked.label)}
 						<p class="text-ink-soft mb-4 text-sm leading-relaxed" role="note">
-							{formatCount(notAsked.count)} sondés ({formatShare(notAsked.share)}) n'ont pas été
-							interrogés sur la question « {notAsked.label} » : ils ne sont pas comptés dans les pourcentages.
+							{formatCount(notAsked.count)} sondés ({formatShare(notAsked.share)}) n'ont pas répondu
+							à la question « {notAsked.label} » (« je ne sais pas ») : ils ne sont pas comptés dans les pourcentages.
 						</p>
 					{/each}
 
