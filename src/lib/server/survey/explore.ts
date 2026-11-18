@@ -253,16 +253,12 @@ export function resolveSort(requested: SortMode | null, questionIsOrdered: boole
 }
 
 /**
- * Rang de tri d une modalite.
+ * Rang de tri d une modalite : les cases masquees par le seuil ferment la marche.
  *
- * Trois etages, et le troisieme est le plus important : la non-reponse ferme
- * toujours la marche. Elle est comptee comme les autres, mais la classer par
- * effectif la placerait parfois en tete, ce qui donnerait a lire « la reponse
- * la plus frequente est l absence de reponse » comme un resultat de meme nature
- * que les autres. Elle se lit en dernier, comme partout ailleurs.
+ * La non-reponse n est plus epinglee en dernier : elle est lue comme un
+ * « Je ne sais pas » et se classe par effectif, donc en tete quand elle domine.
  */
-function sortRank(isNonResponse: boolean, count: number | null): number {
-	if (isNonResponse) return 2;
+function sortRank(_isNonResponse: boolean, count: number | null): number {
 	return count === null ? 1 : 0;
 }
 

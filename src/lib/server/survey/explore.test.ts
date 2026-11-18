@@ -362,18 +362,8 @@ describe('sortOutcome', () => {
 		const sorted = sortOutcome(distributionOf(), 'effectif');
 		if (sorted.kind !== 'distribution') throw new Error('distribution attendue');
 
-		const counts = sorted.distribution.bars
-			.filter((bar) => !bar.isNonResponse)
-			.map((bar) => bar.count);
+		const counts = sorted.distribution.bars.map((bar) => bar.count);
 		expect(counts).toEqual([...counts].sort((a, b) => (b ?? 0) - (a ?? 0)));
-	});
-
-	it('laisse la non-reponse fermer la marche, quel que soit son effectif', () => {
-		const sorted = sortOutcome(distributionOf(), 'effectif');
-		if (sorted.kind !== 'distribution') throw new Error('distribution attendue');
-
-		const last = sorted.distribution.bars[sorted.distribution.bars.length - 1];
-		expect(last?.isNonResponse).toBe(true);
 	});
 
 	it('ne touche a rien en mode questionnaire', () => {
