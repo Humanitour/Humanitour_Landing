@@ -44,7 +44,7 @@
 		<p class="measure mt-3 text-base leading-relaxed {mutedClass(surface)}" data-field="intro">{intro}</p>
 	{/if}
 
-	<dl class="grid gap-10 {GRID[columns]}" class:mt-10={title !== null || intro !== null}>
+	<dl class="grid gap-6 {GRID[columns]}" class:mt-10={title !== null || intro !== null}>
 		{#each items as item, index (index)}
 			{@const value = read.itemText(item, 'value') ?? ''}
 			{@const label = read.itemText(item, 'label') ?? ''}
@@ -64,7 +64,11 @@
 					documents imprimes. Le couple terme/definition reste porte par `dl`,
 					`Stat` n'en habille que l'interieur.
 				-->
-				<div>
+				<div
+					class={surface === 'ink'
+						? 'rounded-block border border-white/12 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]'
+						: 'block-card p-6'}
+				>
 					<dt class="sr-only">{label}</dt>
 					<dd><Stat {value} {label} hint={hint ?? undefined} /></dd>
 				</div>

@@ -5,7 +5,7 @@
 	import Marked from './Marked.svelte';
 	import { sectionReader } from './read';
 	import Section from './Section.svelte';
-	import { divideClass, mutedClass } from './surfaces';
+	import { mutedClass } from './surfaces';
 
 	interface Props {
 		id: string;
@@ -61,10 +61,14 @@
 		forment un couple, et le balisage doit le dire. Les filets separent, les
 		cartes decoupent — ici il s'agit d'une meme liste, pas d'objets distincts.
 	-->
-	<dl class="mt-10 flex flex-col divide-y {divideClass(surface)}">
+	<dl class="mt-10 flex flex-col gap-3">
 		{#each items as item, index (index)}
 			{@const consequence = read.itemText(item, 'consequence')}
-			<div class="grid gap-2 py-7 {ROWS[layout]}">
+			<div
+				class="grid gap-2 px-6 py-6 {ROWS[layout]} {surface === 'ink'
+					? 'rounded-block border border-white/12 bg-white/[0.04]'
+					: 'block-card'}"
+			>
 				<dt class="text-xl font-semibold" data-field="items.{index}.term">
 					{read.itemText(item, 'term')}
 				</dt>

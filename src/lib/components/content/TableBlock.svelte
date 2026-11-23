@@ -38,57 +38,67 @@
 		</h2>
 	{/if}
 
-	<table class="mt-10 w-full border-collapse text-left sm:mt-14">
-		<!-- La legende n'est pas decorative : elle remplace le tableau entier
+	<div
+		class="mt-10 overflow-hidden sm:mt-14 {surface === 'ink'
+			? 'rounded-block border border-white/12 bg-white/[0.03] px-5 py-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] sm:px-8 sm:py-3'
+			: 'block-card px-5 py-2 sm:px-8 sm:py-3'}"
+	>
+		<table class="w-full border-collapse text-left">
+			<!-- La legende n'est pas decorative : elle remplace le tableau entier
 			     pour un lecteur d'ecran qui le survole. -->
-		<caption class="sr-only">{read.text('caption')}</caption>
-		<thead>
-			<tr class="border-b {headBorder}">
-				<th scope="col" class="pb-3 text-left text-sm font-semibold opacity-70">
-					{read.text('column1')}
-				</th>
-				<th scope="col" class="px-3 pb-3 text-left text-sm font-semibold opacity-70">
-					{read.text('column2')}
-				</th>
-				<th scope="col" class="pb-3 text-right text-sm font-semibold opacity-70">
-					{read.text('column3')}
-				</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each rows as row, index (index)}
-				{@const detail = read.itemText(row, 'detail')}
-				<tr class="border-b {rowBorder}">
-					<th
-						scope="row"
-						class="py-4 text-left align-baseline text-base font-semibold sm:py-5 sm:text-lg"
-					>
-						<span class="block" data-field="rows.{index}.entry">{read.itemText(row, 'entry')}</span>
-						{#if detail}<span
-								class="block text-sm font-normal opacity-60"
-								data-field="rows.{index}.detail">{detail}</span>{/if}
+			<caption class="sr-only">{read.text('caption')}</caption>
+			<thead>
+				<tr class="border-b {headBorder}">
+					<th scope="col" class="py-4 text-left text-sm font-semibold opacity-70">
+						{read.text('column1')}
 					</th>
-					<td
-						class="px-3 py-4 align-baseline text-sm opacity-70 sm:py-5 sm:text-base"
-						data-field="rows.{index}.value1"
-					>{read.itemText(row, 'value1')}</td>
-					<td class="py-4 text-right align-baseline sm:py-5">
-						<!--
+					<th scope="col" class="px-3 py-4 text-left text-sm font-semibold opacity-70">
+						{read.text('column2')}
+					</th>
+					<th scope="col" class="py-4 text-right text-sm font-semibold opacity-70">
+						{read.text('column3')}
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each rows as row, index (index)}
+					{@const detail = read.itemText(row, 'detail')}
+					<tr
+						class="border-b last:border-b-0 {rowBorder} transition-colors {surface === 'ink'
+							? 'hover:bg-white/[0.03]'
+							: 'hover:bg-cream/55'}"
+					>
+						<th
+							scope="row"
+							class="py-4 text-left align-baseline text-base font-semibold sm:py-5 sm:text-lg"
+						>
+							<span class="block" data-field="rows.{index}.entry">{read.itemText(row, 'entry')}</span>
+							{#if detail}<span
+									class="block text-sm font-normal opacity-60"
+									data-field="rows.{index}.detail">{detail}</span>{/if}
+						</th>
+						<td
+							class="px-3 py-4 align-baseline text-sm opacity-70 sm:py-5 sm:text-base"
+							data-field="rows.{index}.value1"
+						>{read.itemText(row, 'value1')}</td>
+						<td class="py-4 text-right align-baseline sm:py-5">
+							<!--
 								MOTION : un seul geste, joue une fois au chargement, les valeurs
 								tombent ligne par ligne comme le soir d'un scrutin. Aucune boucle,
 								aucun declenchement au defilement. L'etat de base est deja l'etat
 								final : rien ne depend de l'animation pour etre lu.
 							-->
-						<span
-							class="drop figure font-display block text-xl leading-none whitespace-nowrap sm:text-3xl lg:text-4xl"
-							style="animation-delay: {index * 90 + 120}ms"
-							data-field="rows.{index}.value2"
-						>{read.itemText(row, 'value2')}</span>
-					</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+							<span
+								class="drop figure font-display inline-block text-xl leading-none whitespace-nowrap sm:text-3xl lg:text-4xl"
+								style="animation-delay: {index * 90 + 120}ms"
+								data-field="rows.{index}.value2"
+							>{read.itemText(row, 'value2')}</span>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 
 	<!--
 		Pleine largeur et non la mesure de lecture : les deux textes commentent un

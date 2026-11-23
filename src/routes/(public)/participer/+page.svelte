@@ -21,10 +21,10 @@
 	</div>
 </header>
 
-<div class="bg-paper">
+<div class="bg-cream">
 	<div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
 		<ol class="grid gap-6 lg:grid-cols-3">
-			<li class="bg-cream rounded-block flex flex-col justify-between p-7 sm:p-8">
+			<li class="block-card flex flex-col justify-between p-7 sm:p-8">
 				<div>
 					<p class="text-coral-ink text-sm font-semibold tracking-wide uppercase">01 · S’exprimer</p>
 					<h2 class="mt-3 text-2xl">Répondre aux sondages</h2>
@@ -38,7 +38,7 @@
 				</div>
 			</li>
 
-			<li class="bg-cream rounded-block flex flex-col justify-between p-7 sm:p-8">
+			<li class="block-card flex flex-col justify-between p-7 sm:p-8">
 				<div>
 					<p class="text-coral-ink text-sm font-semibold tracking-wide uppercase">02 · Soutenir</p>
 					<h2 class="mt-3 text-2xl">Donner ou adhérer</h2>
@@ -54,7 +54,7 @@
 				</div>
 			</li>
 
-			<li class="bg-cream rounded-block flex flex-col justify-between p-7 sm:p-8">
+			<li class="block-card flex flex-col justify-between p-7 sm:p-8">
 				<div>
 					<p class="text-coral-ink text-sm font-semibold tracking-wide uppercase">03 · S’impliquer</p>
 					<h2 class="mt-3 text-2xl">Nous rejoindre</h2>

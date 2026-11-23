@@ -72,7 +72,7 @@
 
 	{#if figures.length > 0}
 		<dl
-			class="enter mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:mt-7 sm:gap-y-4"
+			class="enter mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:gap-3.5"
 			style="--enter-delay: 180ms"
 		>
 			{#each figures as figure, index (index)}
@@ -81,7 +81,11 @@
 					l'ordre du DOM garde le couple terme/definition dans le sens que `dl`
 					impose aux lecteurs d'ecran.
 				-->
-				<div class="flex flex-col-reverse gap-1">
+				<div
+					class="flex flex-col-reverse gap-1.5 px-4 py-3 {surface === 'ink'
+						? 'rounded-panel border border-white/12 bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]'
+						: 'block-card'}"
+				>
 					<dt
 						class="text-xs leading-snug opacity-75 sm:text-sm"
 						data-field="figures.{index}.label"

@@ -39,31 +39,41 @@
 		</div>
 
 		<div>
-			<blockquote class="measure text-2xl leading-snug font-medium sm:text-3xl">
-				<!-- Les guillemets sont du gabarit, pas du champ : la zone modifiable ne
-				     porte que la citation, sinon on les effacerait en tapant. -->
-				« <span data-field="quote">{read.text('quote')}</span> »
-			</blockquote>
+			<div
+				class="p-6 sm:p-8 {surface === 'ink'
+					? 'rounded-block border border-white/12 bg-white/[0.04] shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]'
+					: 'block-card'}"
+			>
+				<blockquote class="measure border-coral border-l-4 pl-5 text-2xl leading-snug font-medium sm:text-3xl">
+					<!-- Les guillemets sont du gabarit, pas du champ : la zone modifiable ne
+					     porte que la citation, sinon on les effacerait en tapant. -->
+					« <span data-field="quote">{read.text('quote')}</span> »
+				</blockquote>
 
-			<!-- Une citation sans source ne se publie pas : l'auteur est obligatoire
-			     a la saisie, il ne peut donc pas manquer ici. -->
-			<p class="mt-4 text-base {mutedClass(surface)}">
-				<span data-field="author">{read.text('author')}</span>
-				{#if sourceUrl}
-					—
-					<a href={sourceUrl} class="underline decoration-2 underline-offset-2">la source</a>
-				{/if}
-			</p>
+				<!-- Une citation sans source ne se publie pas : l'auteur est obligatoire
+				     a la saisie, il ne peut donc pas manquer ici. -->
+				<p class="mt-4 pl-6 text-base {mutedClass(surface)}">
+					<span data-field="author">{read.text('author')}</span>
+					{#if sourceUrl}
+						—
+						<a href={sourceUrl} class="underline decoration-2 underline-offset-2">la source</a>
+					{/if}
+				</p>
+			</div>
 
-			<div class="mt-12 text-lg" data-field="body" data-field-kind="doc">
+			<div class="mt-10 text-lg" data-field="body" data-field-kind="doc">
 				<RichText doc={read.doc('body')} {surface} />
 			</div>
 
 			{#if items.length > 0}
-				<dl class="mt-10 flex flex-col gap-8">
+				<dl class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
 					{#each items as item, index (index)}
-						<div class="measure">
-							<dt class="text-xl font-semibold" data-field="items.{index}.term">
+						<div
+							class="measure p-5 sm:p-6 {surface === 'ink'
+								? 'rounded-block border border-white/12 bg-white/[0.04]'
+								: 'block-card'}"
+						>
+							<dt class="text-lg font-semibold sm:text-xl" data-field="items.{index}.term">
 								{read.itemText(item, 'term')}
 							</dt>
 							<dd

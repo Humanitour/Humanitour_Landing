@@ -50,9 +50,13 @@
 		<p class="measure mt-6 text-lg leading-relaxed" data-field="intro">{intro}</p>
 	{/if}
 
-	<div class="mt-14 grid gap-10 {GRID[items.length] ?? GRID[3]}">
+	<div class="mt-14 grid gap-6 {GRID[items.length] ?? GRID[3]}">
 		{#each items as item, index (index)}
-			<div>
+			<div
+				class={surface === 'ink'
+					? 'rounded-block border border-white/12 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] sm:p-7'
+					: 'block-card p-6 sm:p-7'}
+			>
 				<p
 					class="font-display text-3xl leading-none sm:text-4xl {figureClass}"
 					data-field="items.{index}.figure"

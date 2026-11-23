@@ -4,7 +4,7 @@
 	import { getContentContext } from './context';
 	import { sectionReader } from './read';
 	import Section from './Section.svelte';
-	import { divideClass, mutedClass } from './surfaces';
+	import { mutedClass } from './surfaces';
 
 	interface Props {
 		id: string;
@@ -22,13 +22,6 @@
 	const title = $derived(read.text('title'));
 	const intro = $derived(read.text('intro'));
 	const items = $derived(read.list('items'));
-
-	/*
-	 * Le corail sombre est le corail lisible SUR FOND CLAIR (6,1:1 sur blanc) ;
-	 * sur l'aplat noir il tombe a 3,3:1. C'est le corail de la charte qui y tient
-	 * la lisibilite, avec 6,75:1.
-	 */
-	const numberClass = $derived(surface === 'ink' ? 'text-coral' : 'text-coral-ink');
 </script>
 
 <!--
@@ -48,14 +41,22 @@
 		</div>
 
 		<div>
-			<ol class="divide-y {divideClass(surface)}">
+			<ol class="flex flex-col gap-3">
 				{#each items as item, index (index)}
-					<li class="flex gap-5 py-5 first:pt-0">
-						<span class="font-display shrink-0 text-xl leading-tight {numberClass}">
+					<li
+						class="flex items-center gap-4 px-5 py-4 {surface === 'ink'
+							? 'rounded-block border border-white/12 bg-white/[0.04]'
+							: 'block-card'}"
+					>
+						<span
+							class="font-display inline-flex size-9 shrink-0 items-center justify-center rounded-full text-base leading-none {surface === 'ink'
+								? 'bg-coral/20 text-coral'
+								: 'bg-coral-wash text-coral-ink'}"
+						>
 							{index + 1}
 						</span>
 						<p
-							class="min-w-0 text-lg leading-snug font-semibold sm:text-xl"
+							class="min-w-0 text-base leading-snug font-semibold sm:text-lg"
 							data-field="items.{index}.text"
 						>{read.itemText(item, 'text')}</p>
 					</li>

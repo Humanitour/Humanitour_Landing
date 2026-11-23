@@ -52,8 +52,7 @@
 		};
 	}
 
-	const field =
-		'border-ink/20 rounded-field bg-paper min-h-11 border px-3 py-2.5 focus-visible:border-ink';
+	const field = 'field-tactile rounded-field min-h-11 px-3 py-2.5';
 </script>
 
 <Section {surface} {spacing} labelledby={id}>
@@ -110,7 +109,7 @@
 					<button
 						type="submit"
 						disabled={pending}
-						class="bg-ink text-paper press rounded-pill min-h-12 shrink-0 self-end px-6 py-3 font-semibold disabled:opacity-60"
+						class="btn-3d btn-3d-ink rounded-pill min-h-12 shrink-0 self-end px-6 py-3 font-semibold disabled:opacity-60"
 					>
 						{pending ? 'Envoi…' : "S'abonner"}
 					</button>
