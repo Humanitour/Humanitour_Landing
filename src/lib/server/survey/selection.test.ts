@@ -135,7 +135,7 @@ describe('cardSearch', () => {
 			x: 'region',
 			y: 'sujet',
 			chart: 'stacked',
-			includeNonResponses: false,
+			includeNonResponses: true,
 			weighted: false,
 			filters: [{ questionCode: 'age', modalityKeys: ['18-24'] }]
 		});

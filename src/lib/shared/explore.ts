@@ -30,7 +30,7 @@ export const PARAM_Z = 'z';
 // transporter.
 /** Cle du registre `src/lib/charts/`. */
 export const PARAM_CHART = 'chart';
-/** `0` retire la non-reponse de l AFFICHAGE, jamais du calcul. */
+/** `0` retire la non-reponse de l AFFICHAGE, jamais du calcul. Absent = incluse par defaut. */
 export const PARAM_NON_RESPONSES = 'nr';
 /** Filtre de sous-population, un par modalite retenue : `filtre=region:bre`. */
 export const PARAM_FILTER = 'filtre';
@@ -160,10 +160,9 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
 		y: params.get(PARAM_Y),
 		z: params.get(PARAM_Z),
 		chart: params.get(PARAM_CHART) ?? '',
-		// Seule la valeur « 1 » inclut. Les personnes a qui la question n a pas
-		// ete posee ne comptent pas dans la base par defaut : la page le dit
-		// au-dessus du resultat, avec leur nombre.
-		includeNonResponses: params.get(PARAM_NON_RESPONSES) === '1',
+		// Incluse par defaut : seule la valeur « 0 » la retire de l affichage.
+		// Les anciens liens portant `nr=1` restent valides.
+		includeNonResponses: params.get(PARAM_NON_RESPONSES) !== '0',
 		filters: parseFilterValues(params.getAll(PARAM_FILTER)),
 		sort: parseSort(params.get(PARAM_SORT)),
 		basis: parseCellBasis(params.get(PARAM_BASIS)),
@@ -186,7 +185,7 @@ export function exploreSearch(params: ExploreParams): string {
 	if (params.y) search.set(PARAM_Y, params.y);
 	if (params.z) search.set(PARAM_Z, params.z);
 	if (params.chart) search.set(PARAM_CHART, params.chart);
-	if (params.includeNonResponses) search.set(PARAM_NON_RESPONSES, '1');
+	if (!params.includeNonResponses) search.set(PARAM_NON_RESPONSES, '0');
 
 	if (params.sort) search.set(PARAM_SORT, params.sort);
 	if (params.basis) search.set(PARAM_BASIS, params.basis);

@@ -16,7 +16,7 @@ const BASE: ExploreParams = {
 	y: null,
 	z: null,
 	chart: 'bars',
-	includeNonResponses: false,
+	includeNonResponses: true,
 	filters: [],
 	sort: null,
 	basis: null,
@@ -30,14 +30,14 @@ describe('parseExploreParams', () => {
 		expect(params).toMatchObject({ x: 'priorite', y: 'region', chart: 'stacked' });
 	});
 
-	it('retire les non-reponses par defaut', () => {
-		expect(parseExploreParams(new URLSearchParams('x=priorite')).includeNonResponses).toBe(false);
+	it('inclut les non-reponses par defaut', () => {
+		expect(parseExploreParams(new URLSearchParams('x=priorite')).includeNonResponses).toBe(true);
 	});
 
-	it('ne les inclut que sur la valeur exacte « 1 »', () => {
+	it('ne les retire que sur la valeur exacte « 0 »', () => {
 		expect(parseExploreParams(new URLSearchParams('nr=1')).includeNonResponses).toBe(true);
 		expect(parseExploreParams(new URLSearchParams('nr=0')).includeNonResponses).toBe(false);
-		expect(parseExploreParams(new URLSearchParams('nr=non')).includeNonResponses).toBe(false);
+		expect(parseExploreParams(new URLSearchParams('nr=non')).includeNonResponses).toBe(true);
 	});
 });
 
@@ -77,13 +77,13 @@ describe('parseFilterValues', () => {
 });
 
 describe('exploreSearch', () => {
-	it('omet le croisement absent et la non-reponse retiree', () => {
+	it('omet le croisement absent et la non-reponse incluse par defaut', () => {
 		expect(exploreSearch(BASE)).toBe('x=priorite&chart=bars');
 	});
 
-	it('ecrit nr=1 quand la non-reponse est affichee', () => {
-		expect(exploreSearch({ ...BASE, includeNonResponses: true })).toBe(
-			'x=priorite&chart=bars&nr=1'
+	it('ecrit nr=0 quand la non-reponse est retiree', () => {
+		expect(exploreSearch({ ...BASE, includeNonResponses: false })).toBe(
+			'x=priorite&chart=bars&nr=0'
 		);
 	});
 
