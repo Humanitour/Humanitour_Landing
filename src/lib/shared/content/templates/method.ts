@@ -1,4 +1,5 @@
-import { LICENSES, LINKS, RETENTION } from '../../site';
+import { formatCount } from '../../format';
+import { LICENSES, LINKS, RETENTION, TOUR } from '../../site';
 import { BOURDIEU_BIASES } from './common';
 import type { ContentTemplate } from './types';
 
@@ -91,11 +92,77 @@ export const methodTemplate: ContentTemplate = {
 				highlightStyle: 'brand',
 				intro:
 					"Les entreprises de sondage répondent avant tout à des impératifs économiques. En tant qu'institut citoyen et à but non lucratif, notre priorité n'est pas le rendement, mais le respect des êtres humains et des sciences sociales.",
-				buttons: [{ label: 'Découvrir notre enquête', href: '/le-tour', variant: 'primary' }],
+				buttons: [{ label: 'Voir les résultats', href: '/donnees', variant: 'primary' }],
 				fullHeight: 'contenu',
 				decor: 'aucun',
 				surface: 'paper',
 				spacing: 'normal'
+			}
+		},
+		{
+			type: 'figure-grid',
+			data: {
+				items: [
+					{
+						value: `${formatCount(TOUR.kilometres)} km`,
+						label: 'À vélo',
+						hint: 'À travers les régions métropolitaines'
+					},
+					{
+						value: `${TOUR.months} mois`,
+						label: 'Sur le terrain',
+						hint: 'En continu, au contact des habitants'
+					},
+					{
+						value: String(TOUR.regions),
+						label: 'Régions',
+						hint: 'Toutes les métropolitaines, Corse comprise'
+					},
+					{
+						value: formatCount(TOUR.respondents),
+						label: 'Personnes',
+						hint: 'Rencontrées en face-à-face'
+					}
+				],
+				columns: '4',
+				style: 'affiche',
+				surface: 'ink',
+				spacing: 'compact'
+			}
+		},
+		{
+			type: 'definitions',
+			data: {
+				title: 'Le terrain plutôt que les panels en ligne',
+				items: [
+					{
+						term: 'Aucun panel, aucun courriel',
+						body: "Les instituts privés recrutent en ligne, auprès de volontaires déjà inscrits et rémunérés en bons d'achat. Le vélo a imposé l'inverse : les gens ont été rencontrés là où ils vivent, sans présélection."
+					},
+					{
+						term: 'La France entière, pas les métropoles',
+						body: "Un sondage par courriel surreprésente les grandes villes connectées. Le parcours a traversé les bourgs et les zones rurales que les panels en ligne n'atteignent jamais."
+					},
+					{
+						term: 'Des échanges documentés',
+						body: "Chaque entretien a été enregistré avec l'accord de la personne, pour donner à entendre les voix derrière les pourcentages et pas seulement le chiffre final."
+					}
+				],
+				layout: 'large',
+				shapes: 'oui',
+				surface: 'cream',
+				spacing: 'ample'
+			}
+		},
+		{
+			type: 'embed',
+			data: {
+				title: 'Treize régions, aucune laissée de côté',
+				content: 'carte',
+				subtitle: 'Le carnet de route, étape par étape',
+				secondContent: 'carnet',
+				surface: 'paper',
+				spacing: 'ample'
 			}
 		},
 		{

@@ -75,6 +75,7 @@ export const homeTemplate: ContentTemplate = {
 				figures: FIGURES,
 				buttons: [
 					{ label: 'Voir les résultats', href: '/donnees', variant: 'brand' },
+					{ label: 'Soutenir sur HelloAsso', href: LINKS.helloasso.href, variant: 'inverse' },
 					{ label: 'Lire la méthodologie', href: '/methodologie', variant: 'inverse' }
 				],
 				image: {
@@ -224,7 +225,7 @@ export const homeTemplate: ContentTemplate = {
 				intro:
 					'Soutenez Humanitour, pour redonner la parole à chacun·e et le pouvoir aux citoyens.',
 				buttons: [
-					{ label: 'Adhérer sur HelloAsso', href: LINKS.helloasso.href, variant: 'primary' },
+					{ label: 'Soutenir sur HelloAsso', href: LINKS.helloasso.href, variant: 'primary' },
 					{ label: 'Rejoindre le Discord', href: LINKS.discord.href, variant: 'outline' },
 					{ label: 'S’abonner aux réseaux', href: LINKS.instagram.href, variant: 'ghost' }
 				],

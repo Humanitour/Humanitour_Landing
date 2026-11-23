@@ -213,11 +213,10 @@ export const LINKS = {
 		href: 'https://www.instagram.com/humanitour.france/',
 		description: 'Suis le tour et les coulisses en photos.'
 	},
-	// TODO confirmer l URL exacte de la campagne avant mise en production.
 	helloasso: {
 		label: 'HelloAsso',
-		href: 'https://www.helloasso.com/associations/humanitour',
-		description: "Soutiens le projet et adhère à l'association."
+		href: 'https://www.helloasso.com/associations/humanitour/collectes/le-premier-institut-de-sondage-citoyen',
+		description: "Soutiens le projet et participe à la collecte sur HelloAsso."
 	},
 	/**
 	 * Le carnet de route du tour. L adresse est celle du voyage public, sans le
@@ -265,11 +264,9 @@ export const RETENTION = {
  * coute plus cher en confiance qu'une rubrique manquante.
  */
 export const NAV = [
-	{ href: '/le-tour', label: 'Le tour' },
-	{ href: '/donnees', label: 'Les données' },
-	{ href: '/repondre', label: 'Répondre' },
-	{ href: '/medias', label: 'Médias' },
-	{ href: '/galerie', label: 'Galerie' },
-	{ href: '/methodologie', label: 'Méthodologie' },
-	{ href: '/a-propos', label: "L'institut" }
+	{ href: '/', label: 'Accueil' },
+	{ href: '/donnees', label: 'Résultats' },
+	{ href: '/methodologie', label: 'Méthode' },
+	{ href: '/a-propos', label: "L'institut" },
+	{ href: '/participer', label: 'Participer' }
 ] as const;
