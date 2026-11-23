@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { pageBlocks } from '$lib/server/content/queries';
 import { listPublishedSurveys, listPublishedThemes } from '$lib/server/survey/queries';
 import type { PageServerLoad } from './$types';
@@ -21,6 +22,12 @@ export const load: PageServerLoad = async ({ url }) => {
 		listPublishedThemes(),
 		pageBlocks('DATA')
 	]);
+
+	// Tant qu'un seul sondage est publié et qu'aucun filtre n'est actif,
+	// on évite une étape catalogue inutile et on ouvre directement ses résultats.
+	if (!search && !theme && surveys.length === 1) {
+		redirect(307, `/donnees/${surveys[0]!.slug}`);
+	}
 
 	return { surveys, themes, search, theme, blocks };
 };
