@@ -69,7 +69,7 @@
 					href={LINKS.helloasso.href}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="surface-brand press rounded-pill px-5 py-3 text-sm font-semibold"
+					class="btn-3d btn-3d-brand rounded-pill px-5 py-3 text-sm font-semibold"
 				>
 					Adhérer à l'association
 				</a>

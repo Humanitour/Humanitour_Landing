@@ -33,10 +33,10 @@
 	 * contour d encre d « outline » serait invisible. Il n existe que pour ca.
 	 */
 	const VARIANTS: Record<Variant, string> = {
-		primary: 'press bg-ink text-paper',
-		brand: 'press surface-brand',
-		outline: 'press border-2 border-ink bg-transparent text-ink',
-		inverse: 'press border-2 border-paper bg-transparent text-paper',
+		primary: 'btn-3d btn-3d-ink',
+		brand: 'btn-3d btn-3d-brand',
+		outline: 'btn-3d btn-3d-outline',
+		inverse: 'btn-3d btn-3d-inverse',
 		ghost: 'press text-ink underline decoration-2 underline-offset-4'
 	};
 

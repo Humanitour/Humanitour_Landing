@@ -64,7 +64,7 @@
 	`header-surface` porte le fond, l ombre et la forme qui changent.
 -->
 <header bind:this={headerEl} class="header-shell sticky top-0 z-50" class:is-scrolled={scrolled}>
-	<div class="header-surface bg-cream mx-auto" style="box-shadow: var(--shadow-lift)">
+	<div class="header-surface bg-cream mx-auto">
 		<div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
 			<a href="/" class="flex items-center py-1" aria-label="{SITE.name}, accueil">
 				<img
@@ -87,9 +87,9 @@
 					<a
 						href={item.href}
 						aria-current={current ? 'page' : undefined}
-						class="rounded-pill px-3 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors xl:px-4 {current
-							? 'bg-ink text-paper'
-							: 'hover:bg-ink/8'}"
+						class="rounded-pill px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition-[background-color,box-shadow,transform] duration-150 xl:px-4 {current
+							? 'btn-3d btn-3d-ink'
+							: 'hover:bg-paper hover:shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(0_0_0/0.06)]'}"
 					>
 						{item.label}
 					</a>
@@ -109,7 +109,7 @@
 					href={LINKS.helloasso.href}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="surface-brand press rounded-pill px-5 py-2.5 text-sm font-semibold whitespace-nowrap"
+					class="btn-3d btn-3d-brand rounded-pill px-5 py-2.5 text-sm font-semibold whitespace-nowrap"
 				>
 					Adhérer
 				</a>
@@ -120,7 +120,7 @@
 			<button
 				bind:this={toggleEl}
 				type="button"
-				class="border-ink flex min-h-11 items-center gap-2 rounded-pill border-2 px-4 py-2 text-sm font-semibold lg:hidden"
+				class="btn-3d btn-3d-outline flex min-h-11 items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold lg:hidden"
 				aria-expanded={open}
 				aria-controls="menu-mobile"
 				onclick={() => (open = !open)}
@@ -163,7 +163,7 @@
 							href={LINKS.helloasso.href}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="surface-brand rounded-pill px-5 py-3 text-center font-semibold"
+							class="btn-3d btn-3d-brand rounded-pill px-5 py-3 text-center font-semibold"
 						>
 							Adhérer à l'association
 						</a>
@@ -198,13 +198,18 @@
 	 */
 	.header-surface {
 		max-width: 100%;
+		border: 1px solid transparent;
+		box-shadow: var(--shadow-lift);
 		transition:
 			max-width 380ms var(--ease-overshoot),
-			border-radius 380ms var(--ease-overshoot);
+			border-radius 380ms var(--ease-overshoot),
+			background-color 240ms ease,
+			border-color 240ms ease,
+			box-shadow 240ms ease;
 	}
 
 	/*
-	 * 76 rem, pas moins : la rangee interne (logo, six liens, Discord, Adherer)
+	 * 76 rem, pas moins : la rangee interne (logo, liens, Discord, Adherer)
 	 * est deja plafonnee a `max-w-6xl` (72 rem) plus son propre `px-6` (1,5 rem
 	 * de chaque cote). En dessous de cette somme, les liens n ont pas la place
 	 * de tenir sur une ligne et leur texte se met a la couper au lieu que le
@@ -213,6 +218,29 @@
 	.header-shell.is-scrolled .header-surface {
 		max-width: 76rem;
 		border-radius: var(--radius-block);
+		background-color: rgb(255 241 235 / 0.82);
+		-webkit-backdrop-filter: blur(20px) saturate(1.5);
+		backdrop-filter: blur(20px) saturate(1.5);
+		border-color: var(--glass-edge);
+		outline: 1px solid var(--glass-outer);
+		outline-offset: 0;
+		box-shadow:
+			0 1px 1px rgb(0 0 0 / 0.06),
+			var(--shadow-lift);
+	}
+
+	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+		.header-shell.is-scrolled .header-surface {
+			background-color: var(--color-cream);
+		}
+	}
+
+	@media (prefers-reduced-transparency: reduce) {
+		.header-shell.is-scrolled .header-surface {
+			background-color: var(--color-cream);
+			-webkit-backdrop-filter: none;
+			backdrop-filter: none;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {

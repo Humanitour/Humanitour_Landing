@@ -145,6 +145,19 @@
 	--shadow-photo: 0 26px 60px -28px rgb(0 0 0 / 0.5);
 
 	/*
+	 * Jetons inspires de Tafac : filets capillaires par transparence d'encre,
+	 * voiles de survol/pression, et elevation serree pour les cartes solides.
+	 */
+	--line: color-mix(in srgb, var(--color-ink) 10%, transparent);
+	--line-strong: color-mix(in srgb, var(--color-ink) 16%, transparent);
+	--state-hover: color-mix(in srgb, var(--color-ink) 4%, transparent);
+	--state-press: color-mix(in srgb, var(--color-ink) 8%, transparent);
+	--shadow-card: 0 1px 1px rgb(0 0 0 / 0.04), 0 2px 6px -2px rgb(0 0 0 / 0.07);
+	--shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.05), 0 8px 20px -6px rgb(0 0 0 / 0.12);
+	--glass-edge: rgb(255 255 255 / 0.85) rgb(255 255 255 / 0.45) rgb(255 255 255 / 0.2);
+	--glass-outer: rgb(0 0 0 / 0.1);
+
+	/*
 	 * Hauteur de l'en-tete colle, mesuree dans le navigateur : 68 px, identique
 	 * a tous les paliers, le logo passant de 2 a 2,25 rem sans changer la
 	 * hauteur de la barre. Elle sert aux couvertures qui doivent tenir dans un
@@ -188,6 +201,31 @@ body {
 	text-wrap: pretty;
 }
 
+/* Barres de defilement fines facon Tafac. */
+::-webkit-scrollbar {
+	width: 12px;
+	height: 12px;
+	background: transparent;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: rgb(0 0 0 / 0.2);
+	background-clip: padding-box;
+	border: 4px solid transparent;
+	border-radius: 999px;
+	min-height: 40px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+	background-color: rgb(0 0 0 / 0.36);
+	border-width: 3px;
+}
+
 /*
  * Le degrade en remplissage de texte, comme sur les titres des documents
  * imprimes. Reserve aux titres : en petit corps, le contraste local devient
@@ -227,11 +265,28 @@ body {
  */
 @utility block-card {
 	border-radius: var(--radius-block);
-	/* Meme courbure continue que `photo-block` : deux grammaires d'angles dans
-	   une meme page se verraient, surtout la ou une carte de media porte une
-	   photographie a l'interieur. */
-	corner-shape: squircle;
 	background-color: var(--color-paper);
+	border: 1px solid var(--line);
+	outline: 1px solid rgb(0 0 0 / 0.04);
+	outline-offset: 0;
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 0.75),
+		var(--shadow-card);
+	transition:
+		border-color 160ms ease,
+		box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+		transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+	@supports (corner-shape: superellipse(1.3)) {
+		corner-shape: superellipse(1.3);
+	}
+
+	&:is(a, button, .press):hover {
+		border-color: var(--line-strong);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.85),
+			var(--shadow-card-hover);
+	}
 }
 
 /*
@@ -242,19 +297,42 @@ body {
  */
 @utility rounded-block {
 	border-radius: var(--radius-block);
-	corner-shape: squircle;
+
+	@supports (corner-shape: superellipse(1.3)) {
+		corner-shape: superellipse(1.3);
+	}
+}
+
+@utility rounded-panel {
+	border-radius: var(--radius-panel);
+
+	@supports (corner-shape: superellipse(1.3)) {
+		corner-shape: superellipse(1.3);
+	}
+}
+
+@utility rounded-field {
+	border-radius: var(--radius-field);
+
+	@supports (corner-shape: superellipse(1.3)) {
+		corner-shape: superellipse(1.3);
+	}
 }
 
 /*
  * La surface du back-office. Moins ronde et cernee d'un trait fin, parce qu'un
  * ecran d'administration aligne des tableaux denses : l'oeil a besoin de voir ou
- * un conteneur s'arrete, ce que le seul contraste de fond ne donne pas. Le site
- * public, lui, n'a pas cette contrainte et reste sans bordure.
+ * un conteneur s'arrete, ce que le seul contraste de fond ne donne pas.
  */
 @utility panel {
 	border-radius: var(--radius-panel);
 	background-color: var(--color-paper);
-	border: 1px solid --alpha(var(--color-ink) / 12%);
+	border: 1px solid var(--line);
+	box-shadow: var(--shadow-card);
+
+	@supports (corner-shape: superellipse(1.3)) {
+		corner-shape: superellipse(1.3);
+	}
 }
 
 /*
@@ -264,15 +342,211 @@ body {
  */
 @utility press {
 	transition:
-		transform 120ms ease,
-		filter 120ms ease;
+		transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+		background-color 140ms ease,
+		border-color 140ms ease,
+		box-shadow 160ms ease,
+		filter 140ms ease;
 
 	&:hover {
-		filter: brightness(0.94);
+		filter: brightness(0.95);
 	}
 
 	&:active {
 		transform: scale(0.98);
+	}
+}
+
+/*
+ * Boutons tactiles 2.5D inspires de Tafac : liseret lumineux en tete, chanfrein
+ * d'epaisseur en bas et ombre portee serree. Au clic, le bouton s'enfonce
+ * physiquement et son chanfrein bas s'efface.
+ */
+@utility btn-3d {
+	position: relative;
+	--btn-rim-top: 0.36;
+	--btn-rim-mid: 0.12;
+	--btn-rim-bottom: 0.02;
+	--btn-rim-opacity: 1;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease,
+		box-shadow 220ms ease,
+		transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+		filter 150ms ease;
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		padding: 1px;
+		border-radius: inherit;
+		background: linear-gradient(
+			180deg,
+			rgb(255 255 255 / var(--btn-rim-top)) 0%,
+			rgb(255 255 255 / var(--btn-rim-mid)) 42%,
+			rgb(255 255 255 / var(--btn-rim-bottom)) 100%
+		);
+		-webkit-mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		-webkit-mask-composite: xor;
+		mask:
+			linear-gradient(#000 0 0) content-box exclude,
+			linear-gradient(#000 0 0);
+		opacity: var(--btn-rim-opacity);
+		pointer-events: none;
+		transition: opacity 220ms ease;
+	}
+
+	&:hover:not(:disabled) {
+		transform: translateY(-1px);
+	}
+
+	&:active:not(:disabled) {
+		--btn-rim-opacity: 0;
+		transform: translateY(1px) scale(0.975);
+		transition-duration: 150ms, 150ms, 80ms, 80ms, 150ms;
+		transition-timing-function: ease, ease, ease-out, ease-out, ease;
+	}
+
+	&:active:not(:disabled)::before {
+		transition-duration: 80ms;
+	}
+}
+
+@utility btn-3d-ink {
+	--btn-rim-top: 0.3;
+	--btn-rim-mid: 0.1;
+	--btn-rim-bottom: 0.02;
+	background-color: var(--color-ink);
+	color: var(--color-paper);
+	box-shadow:
+		0 0 0 1px rgb(0 0 0 / 0.85),
+		inset 0 -2px 0 rgb(0 0 0 / 0.55),
+		0 1px 1px rgb(0 0 0 / 0.22),
+		0 3px 6px -1px rgb(0 0 0 / 0.24);
+
+	&:hover:not(:disabled) {
+		box-shadow:
+			0 0 0 1px rgb(0 0 0 / 0.9),
+			inset 0 -2px 0 rgb(0 0 0 / 0.55),
+			0 1px 1px rgb(0 0 0 / 0.24),
+			0 6px 12px -2px rgb(0 0 0 / 0.3);
+	}
+
+	&:active:not(:disabled) {
+		box-shadow:
+			0 0 0 1px rgb(0 0 0 / 0.85),
+			inset 0 2px 3px rgb(0 0 0 / 0.5),
+			0 0 1px rgb(0 0 0 / 0.14);
+	}
+}
+
+@utility btn-3d-brand {
+	--btn-rim-top: 0.58;
+	--btn-rim-mid: 0.2;
+	--btn-rim-bottom: 0.04;
+	background-image: var(--gradient-brand-dense);
+	background-color: var(--color-coral);
+	color: var(--color-ink);
+	box-shadow:
+		0 0 0 1px rgb(193 32 31 / 0.34),
+		0 1px 1px rgb(52 18 0 / 0.16),
+		0 4px 10px -2px rgb(255 87 87 / 0.32);
+
+	&:hover:not(:disabled) {
+		filter: brightness(1.03);
+		box-shadow:
+			0 0 0 1px rgb(193 32 31 / 0.42),
+			0 1px 1px rgb(52 18 0 / 0.18),
+			0 6px 14px -2px rgb(255 87 87 / 0.4);
+	}
+
+	&:active:not(:disabled) {
+		filter: brightness(0.97);
+		box-shadow:
+			0 0 0 1px rgb(193 32 31 / 0.34),
+			inset 0 2px 3px rgb(0 0 0 / 0.22),
+			0 0 1px rgb(52 18 0 / 0.12);
+	}
+}
+
+@utility btn-3d-outline {
+	--btn-rim-top: 0.9;
+	--btn-rim-mid: 0.4;
+	--btn-rim-bottom: 0.12;
+	background-color: rgb(255 255 255 / 0.78);
+	color: var(--color-ink);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--color-ink) 22%, transparent),
+		inset 0 -2px 0 rgb(0 0 0 / 0.1),
+		0 1px 1px rgb(0 0 0 / 0.08),
+		0 2px 4px -1px rgb(0 0 0 / 0.1);
+
+	&:hover:not(:disabled) {
+		background-color: var(--color-paper);
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, var(--color-ink) 32%, transparent),
+			inset 0 -2px 0 rgb(0 0 0 / 0.12),
+			0 1px 1px rgb(0 0 0 / 0.1),
+			0 4px 10px -2px rgb(0 0 0 / 0.14);
+	}
+
+	&:active:not(:disabled) {
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, var(--color-ink) 24%, transparent),
+			inset 0 2px 3px rgb(0 0 0 / 0.18),
+			0 0 1px rgb(0 0 0 / 0.06);
+	}
+}
+
+@utility btn-3d-inverse {
+	--btn-rim-top: 0.45;
+	--btn-rim-mid: 0.16;
+	--btn-rim-bottom: 0.04;
+	background-color: rgb(255 255 255 / 0.08);
+	color: var(--color-paper);
+	box-shadow:
+		0 0 0 1px rgb(255 255 255 / 0.45),
+		inset 0 -2px 0 rgb(0 0 0 / 0.45),
+		0 1px 2px rgb(0 0 0 / 0.28);
+
+	&:hover:not(:disabled) {
+		background-color: rgb(255 255 255 / 0.16);
+		box-shadow:
+			0 0 0 1px rgb(255 255 255 / 0.72),
+			inset 0 -2px 0 rgb(0 0 0 / 0.45),
+			0 3px 8px -1px rgb(0 0 0 / 0.36);
+	}
+
+	&:active:not(:disabled) {
+		box-shadow:
+			0 0 0 1px rgb(255 255 255 / 0.45),
+			inset 0 2px 3px rgb(0 0 0 / 0.48);
+	}
+}
+
+@utility field-tactile {
+	border: 1px solid var(--line-strong);
+	background-color: var(--color-paper);
+	box-shadow:
+		inset 0 1px 1px rgb(0 0 0 / 0.05),
+		0 0 0 0.5px rgb(0 0 0 / 0.08);
+	transition:
+		border-color 150ms ease,
+		box-shadow 150ms ease;
+
+	&:hover:not(:disabled) {
+		border-color: color-mix(in srgb, var(--color-ink) 26%, transparent);
+	}
+
+	&:focus-visible {
+		outline: none;
+		border-color: var(--color-ink);
+		box-shadow:
+			inset 0 1px 1px rgb(0 0 0 / 0.04),
+			0 0 0 1.5px var(--color-ink);
 	}
 }
 
@@ -628,11 +902,16 @@ body {
  * cliches. Aucune troisieme elevation n'est introduite.
  */
 .glass-chip {
-	background-color: rgb(255 255 255 / 0.62);
-	backdrop-filter: blur(24px) saturate(180%);
-	-webkit-backdrop-filter: blur(24px) saturate(180%);
-	border: 1px solid rgb(255 255 255 / 0.55);
-	box-shadow: var(--shadow-lift);
+	background-color: rgb(255 255 255 / 0.66);
+	backdrop-filter: blur(20px) saturate(1.5);
+	-webkit-backdrop-filter: blur(20px) saturate(1.5);
+	border: 1px solid;
+	border-color: var(--glass-edge);
+	outline: 1px solid var(--glass-outer);
+	outline-offset: 0;
+	box-shadow:
+		0 1px 1px rgb(0 0 0 / 0.08),
+		var(--shadow-lift);
 	color: var(--color-ink);
 }
 
