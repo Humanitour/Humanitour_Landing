@@ -1,4 +1,4 @@
-import { NON_RESPONSE_KEY, type ModalityDescriptor } from '$shared/questions';
+import { isNonResponseKey, type ModalityDescriptor } from '$shared/questions';
 import type { FilterClause, SortMode } from '$shared/explore';
 import {
 	crosstab,
@@ -390,7 +390,7 @@ export function suppressedCount(outcome: ExploreOutcome): number {
  */
 export function notAskedCount(axis: Axis, population: Population): number {
 	const ids = within(axis.rows, population)
-		.filter((row) => row.modalityKey === NON_RESPONSE_KEY)
+		.filter((row) => isNonResponseKey(row.modalityKey))
 		.map((row) => row.responseId);
 
 	return new Set(ids).size;

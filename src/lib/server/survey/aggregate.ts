@@ -1,7 +1,7 @@
 import {
 	hasNumericLabels,
+	isNonResponseKey,
 	leadingNumber,
-	NON_RESPONSE_KEY,
 	type ModalityDescriptor
 } from '$lib/shared/questions';
 import { protectDistribution, protectTable, type ProtectedTable } from './anonymity';
@@ -92,7 +92,7 @@ export function orderModalities(
 ): readonly ModalityDescriptor[] {
 	const known = new Set(declared.map((modality) => modality.key));
 	const extra = [...new Set(observed)]
-		.filter((key) => !known.has(key) && key !== NON_RESPONSE_KEY)
+		.filter((key) => !known.has(key) && !isNonResponseKey(key))
 		.sort(compareModalityKeys)
 		.map((key) => ({ key, label: key, isNonResponse: false, color: null }));
 
@@ -128,7 +128,7 @@ function compareModalityKeys(a: string, b: string): number {
  */
 function retained(answers: readonly AnswerRow[], options: AggregateOptions): readonly AnswerRow[] {
 	if (options.includeNonResponses !== false) return answers;
-	return answers.filter((answer) => answer.modalityKey !== NON_RESPONSE_KEY);
+	return answers.filter((answer) => !isNonResponseKey(answer.modalityKey));
 }
 
 /** Repondants distincts : un repondant ayant coche trois cases ne compte qu une fois. */

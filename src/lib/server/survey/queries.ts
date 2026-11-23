@@ -1,5 +1,8 @@
 import {
 	getQuestionType,
+	NON_RESPONSE_KEY,
+	NOT_ASKED_KEY,
+	notAskedModality,
 	type ModalityDescriptor,
 	type QuestionOptionLike
 } from '$lib/shared/questions';
@@ -259,13 +262,50 @@ export async function resolvePopulation(
 	return { population: restrictTo(survey.responseCount, sets), dropped };
 }
 
+function notAskedFirstOf(config: Readonly<Record<string, unknown>>): number {
+	const raw = config.notAskedFirst;
+	return typeof raw === 'number' && Number.isInteger(raw) && raw > 0 ? raw : 0;
+}
+
+/** Repondants initiaux auxquels la question n a pas encore ete posee. */
+async function loadNotAskedResponseIds(surveyId: string, limit: number): Promise<Set<string>> {
+	if (limit <= 0) return new Set();
+
+	const first = await prisma.response.findMany({
+		where: { surveyId },
+		orderBy: [{ collectedAt: 'asc' }, { id: 'asc' }],
+		take: limit,
+		select: { id: true }
+	});
+
+	return new Set(first.map((row) => row.id));
+}
+
 /** Un axe de l explorateur : ses modalites declarees et ses reponses. */
-export async function loadAxis(question: PublicQuestion): Promise<Axis> {
+export async function loadAxis(question: PublicQuestion, surveyId?: string): Promise<Axis> {
+	const baseModalities = questionModalities(question);
+	const rawRows = await getAnswerRows(question.id);
+	const limit = surveyId ? notAskedFirstOf(question.config) : 0;
+
+	if (limit === 0) {
+		return { code: question.code, label: question.label, modalities: baseModalities, rows: rawRows };
+	}
+
+	const notAskedIds = await loadNotAskedResponseIds(surveyId!, limit);
+	let hasNotAsked = false;
+	const rows = rawRows.map((row) => {
+		if (row.modalityKey === NON_RESPONSE_KEY && notAskedIds.has(row.responseId)) {
+			hasNotAsked = true;
+			return { ...row, modalityKey: NOT_ASKED_KEY };
+		}
+		return row;
+	});
+
 	return {
 		code: question.code,
 		label: question.label,
-		modalities: questionModalities(question),
-		rows: await getAnswerRows(question.id)
+		modalities: hasNotAsked ? [...baseModalities, notAskedModality()] : baseModalities,
+		rows
 	};
 }
 
@@ -318,9 +358,9 @@ export async function prepareExplore(
 	const [threshold, populated, x, y, z, weighting] = await Promise.all([
 		options.unmasked ? 1 : resolveThreshold(survey),
 		resolvePopulation(survey, params.filters),
-		loadAxis(xQuestion),
-		yQuestion ? loadAxis(yQuestion) : null,
-		zQuestion ? loadAxis(zQuestion) : null,
+		loadAxis(xQuestion, survey.id),
+		yQuestion ? loadAxis(yQuestion, survey.id) : null,
+		zQuestion ? loadAxis(zQuestion, survey.id) : null,
 		loadPublishedWeighting(survey.id)
 	]);
 

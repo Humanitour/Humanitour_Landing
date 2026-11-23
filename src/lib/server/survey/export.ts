@@ -1,4 +1,4 @@
-import { getQuestionType, NON_RESPONSE_KEY } from '$lib/shared/questions';
+import { getQuestionType, NON_RESPONSE_KEY, NOT_ASKED_KEY } from '$lib/shared/questions';
 import type { PublicQuestion } from './queries';
 
 /**
@@ -50,6 +50,7 @@ export function exportableQuestions(
 /** Libelle d une modalite, pour un fichier lisible sans documentation annexe. */
 function modalityLabel(question: PublicQuestion, key: string): string {
 	if (key === NON_RESPONSE_KEY) return 'Sans réponse';
+	if (key === NOT_ASKED_KEY) return 'Non interrogé';
 
 	const declared = question.options.find((option) => option.code === key);
 	if (declared) return declared.label;

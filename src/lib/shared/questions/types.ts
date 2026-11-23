@@ -21,6 +21,15 @@ export const NON_RESPONSE_KEY = '__non_response__';
 /** Libelle par defaut de la non-reponse, surchargeable par une option declaree. */
 export const NON_RESPONSE_LABEL = 'Je ne sais pas';
 
+/** Cle de modalite pour les repondants a qui la question n a pas ete posee. */
+export const NOT_ASKED_KEY = '__not_asked__';
+
+export const NOT_ASKED_LABEL = 'Non interrogé';
+
+export function isNonResponseKey(key: string): boolean {
+	return key === NON_RESPONSE_KEY || key === NOT_ASKED_KEY;
+}
+
 export interface QuestionOptionLike {
 	readonly code: string;
 	readonly label: string;
@@ -140,6 +149,15 @@ export function nonResponseModality(_options: readonly QuestionOptionLike[]): Mo
 	return {
 		key: NON_RESPONSE_KEY,
 		label: NON_RESPONSE_LABEL,
+		isNonResponse: true,
+		color: null
+	};
+}
+
+export function notAskedModality(): ModalityDescriptor {
+	return {
+		key: NOT_ASKED_KEY,
+		label: NOT_ASKED_LABEL,
 		isNonResponse: true,
 		color: null
 	};
