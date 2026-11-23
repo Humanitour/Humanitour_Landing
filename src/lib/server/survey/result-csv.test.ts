@@ -200,7 +200,7 @@ describe('export en tableau', () => {
 		expect(lines[0]).toBe(
 			`Région × Priorité (% en ligne – données brutes),Le pouvoir d'achat,"La santé, l’hôpital",Effectif`
 		);
-		expect(lines[1]).toBe('Bretagne,66.7,33.3,3');
-		expect(lines[2]).toBe('Ensemble,66.7,33.3,3');
+		expect(lines[1]).toBe('Bretagne,"66,7","33,3",3');
+		expect(lines[2]).toBe('Ensemble,"66,7","33,3",3');
 	});
 });

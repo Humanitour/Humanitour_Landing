@@ -135,9 +135,9 @@ export function panelsToCsv(panels: readonly Panel[]): string {
  * ligne vide : les deux lectures voyagent ensemble.
  */
 
-/** Pourcentage a une decimale, point decimal : relu comme un nombre partout. */
+/** Pourcentage a une decimale avec virgule decimale (import Canva / tableur FR). */
 function percentCell(value: number | null): string | null {
-	return value === null ? null : (value * 100).toFixed(1);
+	return value === null ? null : (value * 100).toFixed(1).replace('.', ',');
 }
 
 function matrixRows(outcome: ExploreOutcome, title: string): readonly string[] {
