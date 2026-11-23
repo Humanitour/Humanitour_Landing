@@ -120,14 +120,6 @@ export const TEAM: readonly TeamMember[] = [
 		name: 'Marie Angèle Gicquel',
 		role: 'Référente sociologie',
 		bio: 'Étudiante en sociologie et en mode, elle analyse nos enquêtes de terrains.'
-	},
-	{
-		// Rejoint apres la plaquette d origine (source/Humanitour.pdf) : nom,
-		// fonction et notice viennent directement de l equipe, pas du PDF.
-		slug: 'tom-conan',
-		name: 'Tom Conan',
-		role: 'Référent données',
-		bio: "Étudiant en informatique et passionné de mathématiques, Tom traite nos données avec la plus grande rigueur."
 	}
 ];
 
